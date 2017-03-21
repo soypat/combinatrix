@@ -1,5 +1,6 @@
 
 err_dict={
+    #Fuck readability
     1 : 'Se encontraron elementos dentro de una materia antes del nombre de la materia en el .txt!\nAgrega un nombre o cambia el nombre de la materia.',
     2 : 'No se encontro el horario donde se esperaba',
     3 : 'No se encontro la barrita separadora (-) en los horarios o se encontro lejos de lo esperado\nAsegurarse de seguir el formato de SGA',
