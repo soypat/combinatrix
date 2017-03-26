@@ -8,7 +8,7 @@ Enter: Combinatrix. La plataforma del futuro. Lo que Combinar Horarios (Matias D
 La salvacion. La esperanza. El rayo de luz en las tinieblas. Se entiende?
 
 El 'goal' de Combinatrix es guardar a memoria todas las materias que el usuario tiene la oportunidad de cursar (El usuario eligira)
-y dejar que el usuario vaya eligiendo combinaciones facilmente con un interfaz grafico
+y dejar que el usuario vaya eligiendo combinaciones facilmente con un interfaz grafico.
 Con cada combinacion de materias el programa devuelve cantidad de horarios posibles, cant. dias libres, cant. creditos y mas! (?)
 
 Estas combinaciones de horarios se pueden escribir a .txt  o ser contenidas en el programa mismo.(*)
