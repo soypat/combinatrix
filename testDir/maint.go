@@ -3,6 +3,7 @@ package main
 import (
 	ui "github.com/gizak/termui"
 	"github.com/gizak/termui/widgets"
+	"github.com/soypat/Combinatrix"
 	"log"
 	"time"
 )
@@ -21,7 +22,7 @@ func main() {
 	wait(1)
 }
 
-func wait(seconds time.Duration) {
+func wait(seconds Combinatrix.time.Duration) {
 	time.Sleep(time.Millisecond*1000*seconds)
 }
 

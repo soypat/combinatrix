@@ -16,29 +16,29 @@ var DaysNoAccent = [...]string{"Lunes", "Martes", "Miercoles", "Jueves", "Vierne
 var DaysBadParse = [...]string{"Lúnes", "Mártes", "Mi�rcoles", "Jueves", "Viernes", "Sébado", "Domingo"}
 var DaysEnglish = [...]string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
 
-func main() {
-	criteria := NewScheduleCriteria()
-	criteria.maxSuperposition = 5.2 // en horas
-	criteria.maxTotalSuperposition = 90
-	criteria.minFreeDays = 0
-	criteria.maxNumberOfSuperpositions = 7
-	//criteria.freeDays[4] = true
-	Classes, err := GatherClasses("data_superpos.dat")
-	if err != nil {
-		panic("Big baddy")
-	}
-
-	//fmt.Printf("%+v", *Classes)
-	ScheduleList := GetSchedules(Classes, &criteria)
-	if ScheduleList != nil {
-		for _, v := range *ScheduleList {
-			fmt.Printf("\n\n%+v", v)
-		}
-	} else {
-		fmt.Printf("No schedules found.")
-	}
-
-}
+//func main() {
+//	criteria := NewScheduleCriteria()
+//	criteria.maxSuperposition = 5.2 // en horas
+//	criteria.maxTotalSuperposition = 90
+//	criteria.minFreeDays = 0
+//	criteria.maxNumberOfSuperpositions = 7
+//	//criteria.freeDays[4] = true
+//	Classes, err := GatherClasses("data_superpos.dat")
+//	if err != nil {
+//		panic("Big baddy")
+//	}
+//
+//	//fmt.Printf("%+v", *Classes)
+//	ScheduleList := GetSchedules(Classes, &criteria)
+//	if ScheduleList != nil {
+//		for _, v := range *ScheduleList {
+//			fmt.Printf("\n\n%+v", v)
+//		}
+//	} else {
+//		fmt.Printf("No schedules found.")
+//	}
+//
+//}
 
 
 
@@ -49,11 +49,11 @@ type comision struct {
 }
 type schedule struct {
 	day   int // from 0 to 6
-	start time
-	end   time
+	start timehm
+	end   timehm
 }
 
-func (mySchedule schedule) Duration() float32 {
+func (mySchedule schedule) HourDuration() float32 {
 	return float32(mySchedule.end.hour - mySchedule.start.hour + (mySchedule.end.minute-mySchedule.start.minute)/60)
 
 }
@@ -62,13 +62,13 @@ func NewSchedule() schedule {
 	return schedule{}
 }
 
-type time struct {
+type timehm struct {
 	hour   int
 	minute int
 }
 
-func NewTime() time {
-	return time{}
+func NewTime() timehm {
+	return timehm{}
 }
 func NewComision() comision {
 	return comision{}
@@ -137,18 +137,18 @@ func searcher(classes *[]Class, currentCursada *Cursada, classNumber int, criter
 }
 
 func findCollision(schedule1 *schedule, schedule2 *schedule) float32 {
-	if (schedule1.start.hour >= schedule2.start.hour && schedule1.start.hour < schedule2.end.hour) && schedule1.Duration() >= 0.5 {
+	if (schedule1.start.hour >= schedule2.start.hour && schedule1.start.hour < schedule2.end.hour) && schedule1.HourDuration() >= 0.5 {
 		if schedule1.end.hour <= schedule2.end.hour {
-			return schedule1.Duration()
+			return schedule1.HourDuration()
 		} else {
-			return schedule1.Duration() + float32(-schedule1.end.hour+schedule2.end.hour)
+			return schedule1.HourDuration() + float32(-schedule1.end.hour+schedule2.end.hour)
 		}
 	}
-	if (schedule2.start.hour >= schedule1.start.hour && schedule2.start.hour < schedule1.end.hour) && schedule2.Duration() >= 0.5 {
+	if (schedule2.start.hour >= schedule1.start.hour && schedule2.start.hour < schedule1.end.hour) && schedule2.HourDuration() >= 0.5 {
 		if schedule2.end.hour <= schedule1.end.hour {
-			return schedule2.Duration()
+			return schedule2.HourDuration()
 		} else {
-			return schedule2.Duration() + float32(-schedule2.end.hour+schedule1.end.hour)
+			return schedule2.HourDuration() + float32(-schedule2.end.hour+schedule1.end.hour)
 		}
 	}
 	return 0.0
@@ -201,7 +201,7 @@ func verifyCursada(currentCursada *Cursada, criteria *scheduleCriteria) bool {
 	return true
 }
 
-func stringToTime(scheduleString string) (int, []time, error) {
+func stringToTime(scheduleString string) (int, []timehm, error) {
 	reWeek := regexp.MustCompile(`(?i)Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo|Miercoles|Sabado|Sébado`)
 	reSchedule := regexp.MustCompile(`[0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
 	reScheduleStart := regexp.MustCompile(`^[0-9:0-9]{5}`)
@@ -239,7 +239,7 @@ func stringToTime(scheduleString string) (int, []time, error) {
 
 	timeEnd.hour = number3
 	timeStart.minute = number4
-	return diaInt, []time{timeStart, timeEnd}, nil
+	return diaInt, []timehm{timeStart, timeEnd}, nil
 }
 
 func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
