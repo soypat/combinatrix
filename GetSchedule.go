@@ -16,7 +16,39 @@ var DaysNoAccent = [...]string{"Lunes", "Martes", "Miercoles", "Jueves", "Vierne
 var DaysBadParse = [...]string{"Lúnes", "Mártes", "Mi�rcoles", "Jueves", "Viernes", "Sébado", "Domingo"}
 var DaysEnglish = [...]string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
 
-func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
+// TYPES
+type comision struct {
+	label     string
+	schedules []schedule
+	teachers  []string
+}
+type schedule struct {
+	day   int8 // from 0 to 6
+	start timehm
+	end   timehm
+}
+
+
+type scheduleCriteria struct {
+	maxSuperposition          float32
+	maxTotalSuperposition     float32
+	maxNumberOfSuperpositions int
+	freeDays                  [len(Days)]bool
+	minFreeDays               int
+}
+
+// Class as in school class
+type Class struct {
+	num1       int
+	num2       int
+	name       string
+	comisiones []comision
+}
+
+type Cursada []comision // Cursada is a the group of courses a student attends during the year/semester
+
+
+func GetSchedules(classes []*Class, criteria *scheduleCriteria) *[]Cursada {
 	currentSchedule := NewCursada()
 	scheduleListMaster := searcher(classes, &currentSchedule, 0, criteria)
 
@@ -27,7 +59,7 @@ func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
 	return scheduleListMaster
 }
 
-func GatherClasses(filedir string) (*[]Class, error) {
+func GatherClasses(filedir string) ([]*Class, error) {
 	f, err := os.Open(filedir)
 	if err != nil {
 		return nil, err
@@ -45,7 +77,7 @@ func GatherClasses(filedir string) (*[]Class, error) {
 
 	var (
 		currentClass          Class
-		allClasses            []Class
+		allClasses            []*Class
 		numberString          string
 		currentStringSchedule string
 		comisionAppended      bool
@@ -83,7 +115,7 @@ func GatherClasses(filedir string) (*[]Class, error) {
 				textLine = scanner.Text()
 				if reClassNumber.MatchString(textLine) {
 					if len(currentClass.comisiones) > 0 {
-						allClasses = append(allClasses, currentClass)
+						allClasses = append(allClasses, &currentClass)
 					}
 
 					if debug {
@@ -158,49 +190,16 @@ func GatherClasses(filedir string) (*[]Class, error) {
 		fmt.Printf("[DEBUG] Se termino de buscar Class. GatherClass Over (%d)\n", line)
 	}
 	if len(currentClass.comisiones) > 0 {
-		allClasses = append(allClasses, currentClass)
+		allClasses = append(allClasses, &currentClass)
 	}
 
 	if err != nil {
 		err = fmt.Errorf("Hubo un error (%d): %s\n", line, err)
 	}
-	return &allClasses, err
+	return allClasses, err
 }
 
-//func main() {
-//	criteria := NewScheduleCriteria()
-//	criteria.maxSuperposition = 5.2 // en horas
-//	criteria.maxTotalSuperposition = 90
-//	criteria.minFreeDays = 0
-//	criteria.maxNumberOfSuperpositions = 7
-//	//criteria.freeDays[4] = true
-//	Classes, err := GatherClasses("data_superpos.dat")
-//	if err != nil {
-//		panic("Big baddy")
-//	}
-//
-//	//fmt.Printf("%+v", *Classes)
-//	ScheduleList := GetSchedules(Classes, &criteria)
-//	if ScheduleList != nil {
-//		for _, v := range *ScheduleList {
-//			fmt.Printf("\n\n%+v", v)
-//		}
-//	} else {
-//		fmt.Printf("No schedules found.")
-//	}
-//
-//}
 
-type comision struct {
-	label     string
-	schedules []schedule
-	teachers  []string
-}
-type schedule struct {
-	day   int // from 0 to 6
-	start timehm
-	end   timehm
-}
 
 func (mySchedule schedule) HourDuration() float32 {
 	return float32(mySchedule.end.hour - mySchedule.start.hour + (mySchedule.end.minute-mySchedule.start.minute)/60)
@@ -223,24 +222,6 @@ func NewComision() comision {
 	return comision{}
 }
 
-type scheduleCriteria struct {
-	maxSuperposition          float32
-	maxTotalSuperposition     float32
-	maxNumberOfSuperpositions int
-	freeDays                  [len(Days)]bool
-	minFreeDays               int
-}
-
-// Class as in school class
-type Class struct {
-	num1       int
-	num2       int
-	name       string
-	comisiones []comision
-}
-
-type Cursada []comision // Cursada is a the group of courses a student attends during the year/semester
-
 func NewScheduleCriteria() scheduleCriteria {
 	return scheduleCriteria{}
 }
@@ -257,13 +238,13 @@ func NewClass() Class {
 	return Class{}
 }
 
-func searcher(classes *[]Class, currentCursada *Cursada, classNumber int, criteria *scheduleCriteria) *[]Cursada {
-	nextClass := (*classes)[classNumber]
+func searcher(classes []*Class, currentCursada *Cursada, classNumber int, criteria *scheduleCriteria) *[]Cursada {
+	nextClass := classes[classNumber]
 	cursadaListMaster := NewCursadaList()
 	for _, v := range nextClass.comisiones {
 		cursadaInstance := append(*currentCursada, v)
 
-		if classNumber == len(*classes)-1 { //llegue a la ultima clase
+		if classNumber == len(classes)-1 { //llegue a la ultima clase
 			isValid := verifyCursada(&cursadaInstance, criteria)
 			if isValid { //El schedule es bueno, lo devuelvo como lista no nula
 				cursadaListMaster = append(cursadaListMaster, cursadaInstance)
@@ -348,7 +329,7 @@ func verifyCursada(currentCursada *Cursada, criteria *scheduleCriteria) bool {
 	return true
 }
 
-func stringToTime(scheduleString string) (int, []timehm, error) {
+func stringToTime(scheduleString string) (int8, []timehm, error) {
 	reWeek := regexp.MustCompile(`(?i)Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo|Miercoles|Sabado|Sébado|Mi�rcoles`)
 	reSchedule := regexp.MustCompile(`[0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
 	reScheduleStart := regexp.MustCompile(`^[0-9:0-9]{5}`)
@@ -356,17 +337,19 @@ func stringToTime(scheduleString string) (int, []timehm, error) {
 	reHours := regexp.MustCompile(`^[0-9]{2}`)
 	reMinutes := regexp.MustCompile(`[0-9]{2}$`)
 	diaString := reWeek.FindString(scheduleString)
-	diaInt := -1
+	//dayInt := -1
+	var dayInt int8
+	dayInt = -1
 	for i, v := range Days {
 		if strings.Contains(strings.Title(diaString), v) {
-			diaInt = i
+			dayInt = int8(i)
 		} else if strings.Contains(strings.Title(diaString), DaysNoAccent[i]) || strings.Contains(strings.Title(diaString), DaysBadParse[i]) || strings.Contains(strings.Title(diaString), DaysEnglish[i]) {
-			diaInt = i
+			dayInt = int8(i)
 		}
 	}
-	if diaInt == -1 {
+	if dayInt == -1 {
 
-		return diaInt, nil, fmt.Errorf("Failed to match string  %s  with a day.", diaString)
+		return dayInt, nil, fmt.Errorf("Failed to match string  %s  with a day.", diaString)
 	}
 	timeString := reSchedule.FindString(scheduleString)
 	startTime := reScheduleStart.FindString(timeString)
@@ -386,13 +369,13 @@ func stringToTime(scheduleString string) (int, []timehm, error) {
 
 	timeEnd.hour = number3
 	timeStart.minute = number4
-	return diaInt, []timehm{timeStart, timeEnd}, nil
+	return dayInt, []timehm{timeStart, timeEnd}, nil
 }
 
-func PossibleCombinations(theClasses *[]Class) int {
+func PossibleCombinations(theClasses []*Class) int {
 	var n int
 	n = 1
-	for _, v := range *theClasses {
+	for _, v := range theClasses {
 		n = n * len(v.comisiones)
 	}
 	return n

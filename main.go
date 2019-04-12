@@ -45,10 +45,7 @@ func main() {
 	}
 	fileList := NewMenu()
 	fileList.options = displayedFileNames
-	fileList.heightStart = [3]int{0, 1, 0}
-	fileList.widthStart = [3]int{0, 1, 0}
-	fileList.widthEnd = [3]int{1, 3, 0}  // ancho ocupa un tercio
-	fileList.heightEnd = [3]int{1, 2, 0} // alto ocupa un medio
+	fileList.fitting  = CreateFitting([3]int{0, 1, 0},[3]int{0, 1, 0},[3]int{1, 3, 0}, [3]int{1, 2, 0})
 	fileList.title = "Seleccionar Archivo de materias"
 	InitMenu(&fileList)
 
@@ -71,7 +68,7 @@ RESETCLASSSELECTION:
 		break // TODO DEBUG remove
 	}
 	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat"
-	Classes, err := GatherClasses(myFile)
+	Classes, err := GatherClasses(myFile) // TODO fix something in here. Returning same class twice
 	//TODO uncomment below
 	//fileDir := fileNames[fileList.selection]
 	//Classes, err := GatherClasses(fileDir[2:]) // TODO DEBUG uncomment
@@ -81,15 +78,12 @@ RESETCLASSSELECTION:
 		goto RESETCLASSSELECTION
 	}
 	ClassNames := []string{}
-	for _, v := range *Classes {
+	for _, v := range Classes {
 		ClassNames = append(ClassNames, v.name)
 	}
 	classMenu := NewMenu()
 	classMenu.options = ClassNames
-	classMenu.heightStart = [3]int{0, 1, 0}
-	classMenu.widthStart = [3]int{1, 3, 0}
-	classMenu.heightEnd = [3]int{2, 3, 0}
-	classMenu.widthEnd = [3]int{2, 3, 0}
+	classMenu.fitting = CreateFitting([3]int{1, 3, 0},[3]int{0, 1, 0},[3]int{2, 3, 0},[3]int{2, 3, 0})
 	classMenu.title = "Clases halladas"
 	InitMenu(&classMenu)
 	askToPollClassList := make(chan bool)
@@ -139,19 +133,14 @@ RESETCLASSSELECTION:
 		time.Sleep(20 * time.Millisecond)
 
 	}
-	//askToPollClassList<- true  // Probably unnecessary
 	ui.Clear()
-	classMenu.heightStart = [3]int{0, 1, 0}
-	classMenu.widthStart = [3]int{0, 1, 0}
-	classMenu.widthEnd = [3]int{1, 3, 0}  // ancho ocupa un tercio
-	classMenu.heightEnd = [3]int{3, 3, 0} // alto ocupa un medio
-
+	classMenu.fitting = CreateFitting([3]int{0, 1, 0},[3]int{0, 1, 0},[3]int{1, 3, 0},[3]int{3, 3, 0})
 	InitMenu(&classMenu)
-	//time.Sleep(time.Millisecond*5000)
-	var workingClasses []Class
+
+	var workingClasses []*Class
 	var classRemoved bool
 	if len(removedClassString) > 0 {
-		for _, v := range *Classes {
+		for _, v := range Classes {
 			classRemoved = false
 			for _, s := range removedClassString {
 				if v.name == s {
@@ -163,13 +152,13 @@ RESETCLASSSELECTION:
 			}
 		}
 	} else {
-		workingClasses = *Classes
+		workingClasses = Classes
 	}
 	// TODO add criteria menu
-	combinatrix := PossibleCombinations(&workingClasses)
+	combinatrix := PossibleCombinations(workingClasses)
 
 	criteria := NewScheduleCriteria()
-	cursadasMaster := GetSchedules(&workingClasses, &criteria)
+	cursadasMaster := GetSchedules(workingClasses, &criteria)
 	if cursadasMaster == nil {
 		err = errors.New("No se hallaron combinaciones.")
 		statusBulletin.Error("", err)

@@ -10,8 +10,9 @@ type menu struct {
 	options       []string
 	title         string
 	color         ui.Color
+	border        bool
 	selectedColor ui.Color
-	fitting
+	*fitting
 	associatedList *widgets.List
 	// asociado a una accion/seleccion:
 	selection int
@@ -19,7 +20,7 @@ type menu struct {
 }
 
 func NewMenu() menu {
-	return menu{color: ui.ColorYellow, selectedColor: ui.ColorClear, selection: -1}
+	return menu{border: true, color: ui.ColorYellow, selectedColor: ui.ColorClear, selection: -1}
 }
 func InitMenu(theMenu *menu) {
 	menu := widgets.NewList()
@@ -95,7 +96,7 @@ func CreateFitting(wS [3]int, hS [3]int, wE [3]int, hE [3]int) *fitting {
 	return &P
 }
 
-func (theMenu menu) getDims() (X int, Y int) {
+func (theMenu menu) GetDims() (X int, Y int) {
 	x1, y1, x2, y2 := theMenu.getRect()
 	if x1 > x2 {
 		X = x1 - x2
