@@ -7,19 +7,19 @@ import (
 )
 
 type menu struct {
-	options []string
-	title   string
-	color   ui.Color
+	options       []string
+	title         string
+	color         ui.Color
 	selectedColor ui.Color
 	fitting
 	associatedList *widgets.List
 	// asociado a una accion/seleccion:
 	selection int
-	action string
+	action    string
 }
 
 func NewMenu() menu {
-	return menu{color: ui.ColorYellow, selectedColor:ui.ColorClear,selection:-1}
+	return menu{color: ui.ColorYellow, selectedColor: ui.ColorClear, selection: -1}
 }
 func InitMenu(theMenu *menu) {
 	menu := widgets.NewList()
@@ -29,15 +29,6 @@ func InitMenu(theMenu *menu) {
 	menu.SetRect(theMenu.fitting.getRect())
 	theMenu.associatedList = menu
 }
-
-//type Selection struct {
-//	*menu
-//	 row int
-//	 executed bool
-//}
-//func NewSelection() Selection {
-//return Selection{row:-1}
-//}
 
 func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 	polling := false
@@ -50,10 +41,10 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 			switch keyIdentifier {
 			case "":
 				time.Sleep(time.Millisecond * 20)
-			case "<Up>","j":
+			case "<Up>", "j":
 				theMenu.associatedList.ScrollUp()
 				//theMenu.associatedList.TextStyle = ui.NewStyle()
-			case "<Down>","k":
+			case "<Down>", "k":
 				theMenu.associatedList.ScrollDown()
 			case "<Enter>":
 				theMenu.selection = theMenu.associatedList.SelectedRow
@@ -82,13 +73,44 @@ type fitting struct {
 	heightEnd   [3]int
 }
 
+func CreateFitting(wS [3]int, hS [3]int, wE [3]int, hE [3]int) *fitting {
+	var P fitting
+	if wS[1] == 0 {
+		wS[1] = 1
+	}
+	if wE[1] == 0 {
+		wE[1] = 1
+	}
+	if hS[1] == 0 {
+		hS[1] = 1
+	}
+	if hE[1] == 0 {
+		hE[1] = 1
+	}
+	P.widthStart = wS
+	P.heightStart = hS
+	P.widthEnd = wE
+	P.heightEnd = hE
+
+	return &P
+}
+
+func (theMenu menu) getDims() (X int, Y int) {
+	x1, y1, x2, y2 := theMenu.getRect()
+	if x1 > x2 {
+		X = x1 - x2
+	} else {
+		X = x2 - x1
+	}
+	if y1 > y2 {
+		Y = y1 - y2
+	} else {
+		Y = y2 - y1
+	}
+	return X, Y
+}
+
 func (P fitting) getRect() (int, int, int, int) {
 	width, height := ui.TerminalDimensions()
-	//if P.widthStart[0] == 0 {
-	//	P.widthStart[0] = 99999999
-	//}
-	//if P.heightStart[0] == 0 {
-	//	P.heightStart[0] = 99999999
-	//}
-	return width*P.widthStart[0]/P.widthStart[1]+P.widthStart[2], height*P.heightStart[0]/P.heightStart[1]+P.heightStart[2], width*P.widthEnd[0]/P.widthEnd[1]+P.widthStart[2], height*P.heightEnd[0]/P.heightEnd[1]+P.heightEnd[2]
+	return width*P.widthStart[0]/P.widthStart[1] + P.widthStart[2], height*P.heightStart[0]/P.heightStart[1] + P.heightStart[2], width*P.widthEnd[0]/P.widthEnd[1] + P.widthStart[2], height*P.heightEnd[0]/P.heightEnd[1] + P.heightEnd[2]
 }

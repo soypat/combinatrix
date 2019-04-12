@@ -26,30 +26,27 @@ Programado en Go.
 Patricio Whittingslow 2019.`
 
 func main() {
-	welcomeBulletin := NewBulletin()
-	welcomeBulletin.title = "Status"
-	welcomeBulletin.message = `
 
-Programado en Go.
-Patricio Whittingslow 2019.`
-	welcomeBulletin.color = theme()
-	var mainUI = uiElements{}
-	askToRenderMain := make(chan bool)
-	go RENDERER(askToRenderMain, &mainUI)
+	//	statusBulletin.title = "Status"
+	//	statusBulletin.message = `
+	//
+	//Programado en Go.
+	//Patricio Whittingslow 2019.`
+	//	statusBulletin.color = theme()
+
 	go pollKeyboard()
-
+	statusBulletin := NewBulletin()
 	//splash(1) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
 	defer ui.Close()
-	defer close(askToRenderMain)
-	defer close(askToPollKeyPress)
 
-	speak := initStatus()
-	welcomeBulletin.speaker = speak
-	welcomeBulletin.Post(welcomeText)
+	//defer close(askToPollKeyPress)
+
+	InitBulletin(&statusBulletin)
+	statusBulletin.Post(welcomeText)
 	displayedFileNames, _, err := fileListCurrentDirectory(54) // TODO DEBUG fileNames
 	if err != nil {
 		log.Fatalf("Fail to read files Combinatrix: %v", err)
@@ -63,9 +60,6 @@ Patricio Whittingslow 2019.`
 	fileList.title = "Seleccionar Archivo de materias"
 	InitMenu(&fileList)
 
-	//mainUI.lists = append(mainUI.lists, *fileList.associatedList)
-
-	askToRenderMain <- true
 	askToPollFileList := make(chan bool)
 
 	go fileList.Poller(askToPollFileList)
@@ -76,21 +70,21 @@ RESETCLASSSELECTION:
 	for {
 		if fileList.selection >= 0 && fileList.action == "<Enter>" {
 			fileList.action = ""
-			welcomeBulletin.color = ui.ColorClear
-			welcomeBulletin.Post("Archivo seleccionado!\nLeyendo...")
+			statusBulletin.color = ui.ColorClear
+			statusBulletin.Post("Archivo seleccionado!\nLeyendo...")
 
 			break
 		}
 		time.Sleep(20 * time.Millisecond)
 		break // TODO DEBUG remove
 	}
-	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/data_smol.dat"
+	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat"
 	Classes, err := GatherClasses(myFile)
-	 //TODO uncomment below
+	//TODO uncomment below
 	//fileDir := fileNames[fileList.selection]
 	//Classes, err := GatherClasses(fileDir[2:]) // TODO DEBUG uncomment
 	if err != nil {
-		welcomeBulletin.Error("Error leyendo archivo.", err)
+		statusBulletin.Error("Error leyendo archivo.", err)
 		fileList.selection = -1
 		goto RESETCLASSSELECTION
 	}
@@ -111,7 +105,7 @@ RESETCLASSSELECTION:
 	askToPollFileList <- false
 	ui.Clear()
 	close(askToPollFileList)
-	welcomeBulletin.Post(`Se pueden borrar clases. Apretar ENTER para continuar...`)
+	statusBulletin.Post(`Se pueden borrar clases. Apretar ENTER para continuar...`)
 
 	go classMenu.Poller(askToPollClassList)
 	askToPollClassList <- true
@@ -158,77 +152,50 @@ RESETCLASSSELECTION:
 	classMenu.heightStart = [3]int{0, 1, 0}
 	classMenu.widthStart = [3]int{0, 1, 0}
 	classMenu.widthEnd = [3]int{1, 3, 0}  // ancho ocupa un tercio
-	classMenu.heightEnd = [3]int{2, 3, 0} // alto ocupa un medio
+	classMenu.heightEnd = [3]int{3, 3, 0} // alto ocupa un medio
 
 	InitMenu(&classMenu)
 	//time.Sleep(time.Millisecond*5000)
 	var workingClasses []Class
 	var classRemoved bool
-	if len(removedClassString)>0 {
+	if len(removedClassString) > 0 {
 		for _, v := range *Classes {
 			classRemoved = false
 			for _, s := range removedClassString {
 				if v.name == s {
-					fmt.Printf("%s -- %s\n",v.name,s)
 					classRemoved = true
 				}
 				if !classRemoved {
-					fmt.Printf("[DEBUG] REMOVED: %s\n",v.name,s)
 					workingClasses = append(workingClasses, v)
 				}
 			}
 		}
-	} else{
+	} else {
 		workingClasses = *Classes
 	}
+	// TODO add criteria menu
+	combinatrix := PossibleCombinations(&workingClasses)
 
+	criteria := NewScheduleCriteria()
+	cursadasMaster := GetSchedules(&workingClasses, &criteria)
+	if cursadasMaster == nil {
+		err = errors.New("No se hallaron combinaciones.")
+		statusBulletin.Error("", err)
+	}
+	ui.Clear()
 
-	//for {
-	//	fmt.Printf("%v\n\n",workingClasses)
-	//	time.Sleep(time.Second*10)
-	//}
+	//var theWeek [5]menu
+
 	keepGoing = true
 	for keepGoing {
-		criteria := NewScheduleCriteria()
-		// TODO FIX SEARCHER!
-		cursadasMaster := GetSchedules(&workingClasses, &criteria) //error in searcher! gets duplicate horarios for special case when 2 classes have same hours/ number/... lots of similarities
-
-		if cursadasMaster == nil {
-			err = errors.New("No se hallaron combinaciones.")
-			welcomeBulletin.Error("", err)
-		}
+		statusBulletin.Post(fmt.Sprintf("%d combinaciones posibles. %d descartadas. %d Combinaciones viables", combinatrix, combinatrix-len(*cursadasMaster), len(*cursadasMaster)))
+		time.Sleep(time.Millisecond * 500)
 	}
 
 	return
 }
 
-type uiElements struct {
-	pars  []widgets.Paragraph
-	lists []widgets.List
-}
-
-// LEAVE ALONE:
-
-func RENDERER(askedToPleaseRender <-chan bool, uiBlocks *uiElements) {
-	rendering := false
-	for {
-		rendering = getRequest(askedToPleaseRender, rendering)
-		if rendering {
-			if len(uiBlocks.pars) != 0 {
-				for _, v := range uiBlocks.pars {
-					ui.Render(&v)
-				}
-			}
-			if len(uiBlocks.lists) != 0 {
-				for _, v := range uiBlocks.lists {
-					ui.Render(&v)
-				}
-			}
-		}
-		time.Sleep(40 * time.Millisecond)
-	}
-}
-
+// ░▒▓█ FOUR VALUE CHARACTER
 func getRequest(response <-chan bool, currentUnderstanding bool) bool { // Basic concurrency function.
 	select {
 	case whatIHeard := <-response:
@@ -240,66 +207,6 @@ func getRequest(response <-chan bool, currentUnderstanding bool) bool { // Basic
 	default:
 		return currentUnderstanding // If we do not recieve answer, continue doing what you were doing
 	}
-}
-
-type bulletin struct {
-	message string
-	title   string
-	color   ui.Color
-	speaker func(bulletin) // tipo, wat the fuck... no me esperaba que iba a funcionar. Brain implosion
-}
-
-func (myBulletin *bulletin) Post(str string) {
-	myBulletin.message = str
-	myBulletin.speaker(*myBulletin) // More brainfuckery
-}
-func (myBulletin *bulletin) Error(message string, err error) {
-	message = fmt.Sprintf(message+"\n", err)
-	myBulletin.message = message
-	myBulletin.color = ui.ColorRed
-	myBulletin.speaker(*myBulletin) // More brainfuckery
-}
-
-func NewBulletin() bulletin {
-	return bulletin{title: "Status", color: theme()}
-}
-
-//func InitMenu() func
-func displayMessage(input bulletin, keyPress <-chan string, timeToDisplay time.Duration) {
-	for i := 0; i < 1000; i++ {
-		pressed := AskForKeyPress()
-		if pressed == "<Space>" || pressed == "<Enter>" {
-			break
-		}
-		input.Post(pressed)
-		time.Sleep(timeToDisplay * time.Millisecond)
-	}
-}
-
-func initStatus() func(bulletin) {
-	width, height := ui.TerminalDimensions()
-	speaks := widgets.NewParagraph()
-	speaks.SetRect(2*width/3, 0, width+1, height/2+1)
-	speaks.Border = false
-	speaks.Title = "Status"
-	speaks.TextStyle = ui.NewStyle(colorWheel[selectedTheme])
-	speaks.Text = welcomeText
-	ui.Render(speaks)
-	handle := func(input bulletin) { // Closure is so cool
-		widthRefresh, heightRefresh := ui.TerminalDimensions()
-		if widthRefresh != width || heightRefresh != height {
-			width = widthRefresh
-			height = heightRefresh
-			speaks.SetRect(2*width/3, -1, width+1, height/2+1)
-		}
-		speaks.Text = input.message
-		speaks.TextStyle = ui.NewStyle(theme())
-		if input.title != "" {
-			speaks.Title = input.title
-		}
-		ui.Render(speaks)
-	}
-	return handle
 }
 
 func splash(seconds time.Duration) {
@@ -466,13 +373,29 @@ func fileListCurrentDirectory(permittedStringLength int) ([]string, []string, er
 func removeS(s []string, i int) []string {
 	s = append(s[:i], s[i+1:]...)
 	return s
-	//s[i] = s[len(s)-1]
-	//return s[:len(s)-1]
 }
 func removeI(v []int, i int) []int {
 	v = append(v[:i], v[i+1:]...)
 	return v
-	//v[i] = v[len(v)-1]
-	//return v[:len(v)-1]
+}
 
+func factorial(i int) int {
+	if i > 1 {
+		return i * factorial(i-1)
+	} else if i < 0 {
+		return -1
+
+	} else {
+		return 1
+	}
+}
+
+func NCR(n int, r int) int {
+	if n < 1 || r < 1 {
+		return -1
+	} else if n >= r {
+		return factorial(n) / (factorial(r) * factorial(n-r))
+	} else {
+		return -1000
+	}
 }

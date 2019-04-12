@@ -21,12 +21,11 @@ func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
 	scheduleListMaster := searcher(classes, &currentSchedule, 0, criteria)
 
 	// Search function: cada instancia de recursividad busca verificar un schedule (lo va fabricando a medida que avanza) y devuelve una lista de schedules verificados y los va juntando en cada instancia
-	if len(*scheduleListMaster) == 0{
+	if len(*scheduleListMaster) == 0 {
 		return nil
 	}
 	return scheduleListMaster
 }
-
 
 func GatherClasses(filedir string) (*[]Class, error) {
 	f, err := os.Open(filedir)
@@ -49,8 +48,9 @@ func GatherClasses(filedir string) (*[]Class, error) {
 		allClasses            []Class
 		numberString          string
 		currentStringSchedule string
+		comisionAppended      bool
 	)
-
+	badChar := '�'
 	for scanner.Scan() {
 		line++
 		textLine := scanner.Text()
@@ -82,7 +82,10 @@ func GatherClasses(filedir string) (*[]Class, error) {
 				line++
 				textLine = scanner.Text()
 				if reClassNumber.MatchString(textLine) {
-					allClasses = append(allClasses, currentClass)
+					if len(currentClass.comisiones) > 0 {
+						allClasses = append(allClasses, currentClass)
+					}
+
 					if debug {
 						fmt.Printf("[DEBUG] Fin de class y comienzo de otra hallada (%d)\n", line)
 					}
@@ -94,10 +97,12 @@ func GatherClasses(filedir string) (*[]Class, error) {
 						fmt.Printf("[DEBUG] Nueva Comision %s encontrada (%d)\n", textLine, line)
 					}
 					if currentComision.label != "" {
-						if debug {
-							fmt.Printf("[DEBUG] Comision %s append a class (%d)\n", currentComision.label, line)
+						if !comisionAppended {
+							currentClass.comisiones = append(currentClass.comisiones, currentComision)
+							if debug {
+								fmt.Printf("[DEBUG] Comision %s append a class (%d)\n", currentComision.label, line)
+							}
 						}
-						currentClass.comisiones = append(currentClass.comisiones, currentComision)
 						currentComision = NewComision()
 					}
 
@@ -107,6 +112,7 @@ func GatherClasses(filedir string) (*[]Class, error) {
 
 				if reEndComision.MatchString(textLine) {
 					currentClass.comisiones = append(currentClass.comisiones, currentComision)
+					comisionAppended = true
 					if debug {
 						fmt.Printf("[DEBUG] Fin de una comision. (%d)\n", line)
 					}
@@ -116,7 +122,16 @@ func GatherClasses(filedir string) (*[]Class, error) {
 				currentStringSchedule = reSchedule.FindString(textLine)
 
 				if currentStringSchedule != "" {
+					comisionAppended = false
+					// se usaron 3 algoritmos para eliminar los caracteres malos
 					currentStringSchedule = reEAccent.ReplaceAllString(currentStringSchedule, "é")
+					//currentStringSchedule = strings.Replace(currentStringSchedule,string(badChar),"é",-1)
+					for i, s := range currentStringSchedule {
+						if s == badChar {
+							currentStringSchedule = currentStringSchedule[:i] + "é" + currentStringSchedule[i+1:]
+						}
+					}
+
 					diaInt, theTime, err := stringToTime(currentStringSchedule)
 					if err != nil {
 						return nil, err
@@ -142,12 +157,16 @@ func GatherClasses(filedir string) (*[]Class, error) {
 	if debug {
 		fmt.Printf("[DEBUG] Se termino de buscar Class. GatherClass Over (%d)\n", line)
 	}
-	allClasses = append(allClasses, currentClass)
+	if len(currentClass.comisiones) > 0 {
+		allClasses = append(allClasses, currentClass)
+	}
+
 	if err != nil {
 		err = fmt.Errorf("Hubo un error (%d): %s\n", line, err)
 	}
 	return &allClasses, err
 }
+
 //func main() {
 //	criteria := NewScheduleCriteria()
 //	criteria.maxSuperposition = 5.2 // en horas
@@ -171,8 +190,6 @@ func GatherClasses(filedir string) (*[]Class, error) {
 //	}
 //
 //}
-
-
 
 type comision struct {
 	label     string
@@ -239,8 +256,6 @@ func NewCursadaList() []Cursada {
 func NewClass() Class {
 	return Class{}
 }
-
-
 
 func searcher(classes *[]Class, currentCursada *Cursada, classNumber int, criteria *scheduleCriteria) *[]Cursada {
 	nextClass := (*classes)[classNumber]
@@ -334,7 +349,7 @@ func verifyCursada(currentCursada *Cursada, criteria *scheduleCriteria) bool {
 }
 
 func stringToTime(scheduleString string) (int, []timehm, error) {
-	reWeek := regexp.MustCompile(`(?i)Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo|Miercoles|Sabado|Sébado`)
+	reWeek := regexp.MustCompile(`(?i)Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo|Miercoles|Sabado|Sébado|Mi�rcoles`)
 	reSchedule := regexp.MustCompile(`[0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
 	reScheduleStart := regexp.MustCompile(`^[0-9:0-9]{5}`)
 	reScheduleFinish := regexp.MustCompile(`[0-9:0-9]{5}$`)
@@ -374,6 +389,11 @@ func stringToTime(scheduleString string) (int, []timehm, error) {
 	return diaInt, []timehm{timeStart, timeEnd}, nil
 }
 
-
-
-
+func PossibleCombinations(theClasses *[]Class) int {
+	var n int
+	n = 1
+	for _, v := range *theClasses {
+		n = n * len(v.comisiones)
+	}
+	return n
+}
