@@ -1,6 +1,9 @@
 # Combinatrix
-Combinar horarios para ITBA """dinamicamente""" 
 
+<a href="https://imgflip.com/gif/2ydg9p"><img src="https://i.imgflip.com/2ydg9p.gif" title="made at imgflip.com"/></a>
+
+Combinar horarios para ITBA """dinamicamente""" 
+<a href="https://imgflip.com/gif/2ydg9p"><img src="https://i.imgflip.com/2ydg9p.gif" title="made at imgflip.com"/></a>
 Sos un alumno de tercer a~no. El dia antes de anotarse para las materias que queres te das cuenta:
 no solo tenes que combinar horarios de las materias que queres, tenes que combinar... las materias mismas!
 
