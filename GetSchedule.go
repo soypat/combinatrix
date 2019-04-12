@@ -9,13 +9,145 @@ import (
 	"strings"
 )
 
-const debug = true
+const debug = false
 
 var Days = [...]string{"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"}
 var DaysNoAccent = [...]string{"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"}
 var DaysBadParse = [...]string{"Lúnes", "Mártes", "Mi�rcoles", "Jueves", "Viernes", "Sébado", "Domingo"}
 var DaysEnglish = [...]string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
 
+func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
+	currentSchedule := NewCursada()
+	scheduleListMaster := searcher(classes, &currentSchedule, 0, criteria)
+
+	// Search function: cada instancia de recursividad busca verificar un schedule (lo va fabricando a medida que avanza) y devuelve una lista de schedules verificados y los va juntando en cada instancia
+	if len(*scheduleListMaster) == 0{
+		return nil
+	}
+	return scheduleListMaster
+}
+
+
+func GatherClasses(filedir string) (*[]Class, error) {
+	f, err := os.Open(filedir)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+
+	line := 0
+
+	reClassNumber := regexp.MustCompile(`[0-9]{2}\.[0-9]{2}`)
+	reSchedule := regexp.MustCompile(`^[\s]{0,99}[A-Za-zéá�]{5,9}[\s][0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
+	reComisionLabel := regexp.MustCompile(`(?:^[\s]{0,99})[A-Z]{1,8}(?:[\s]{0,99}$)`)
+	reEndComision := regexp.MustCompile(`^[\s]{0,99}[0-9]{1,4}[\/\s]{1,3}[0-9]{1,4}[\s]{0,99}$`)
+	reEAccent := regexp.MustCompile(`[�]{1}`)
+
+	var (
+		currentClass          Class
+		allClasses            []Class
+		numberString          string
+		currentStringSchedule string
+	)
+
+	for scanner.Scan() {
+		line++
+		textLine := scanner.Text()
+
+		if len(textLine) == 0 {
+			continue
+		}
+		//Sanitize unicode disgusting badness
+		// Si encuentro una clase
+		for reClassNumber.MatchString(textLine) {
+			if debug {
+				fmt.Printf("[DEBUG] Nueva class hallada (%d)\n", line)
+			}
+			currentClass = NewClass()
+			numberString = reClassNumber.FindString(textLine)
+			currentClass.num1, err = strconv.Atoi(numberString[0:2])
+			if err != nil {
+				break
+			}
+			currentClass.num2, err = strconv.Atoi(numberString[3:5])
+			if err != nil {
+				break
+			}
+			currentClass.name = textLine[8:]
+
+			currentComision := NewComision()
+			// Entro en el for loop de las comisiones
+			for scanner.Scan() {
+				line++
+				textLine = scanner.Text()
+				if reClassNumber.MatchString(textLine) {
+					allClasses = append(allClasses, currentClass)
+					if debug {
+						fmt.Printf("[DEBUG] Fin de class y comienzo de otra hallada (%d)\n", line)
+					}
+					break
+				}
+				// Si es una comision:
+				if reComisionLabel.MatchString(textLine) {
+					if debug {
+						fmt.Printf("[DEBUG] Nueva Comision %s encontrada (%d)\n", textLine, line)
+					}
+					if currentComision.label != "" {
+						if debug {
+							fmt.Printf("[DEBUG] Comision %s append a class (%d)\n", currentComision.label, line)
+						}
+						currentClass.comisiones = append(currentClass.comisiones, currentComision)
+						currentComision = NewComision()
+					}
+
+					currentComision.label = reComisionLabel.FindString(textLine)
+
+				}
+
+				if reEndComision.MatchString(textLine) {
+					currentClass.comisiones = append(currentClass.comisiones, currentComision)
+					if debug {
+						fmt.Printf("[DEBUG] Fin de una comision. (%d)\n", line)
+					}
+					continue
+				}
+
+				currentStringSchedule = reSchedule.FindString(textLine)
+
+				if currentStringSchedule != "" {
+					currentStringSchedule = reEAccent.ReplaceAllString(currentStringSchedule, "é")
+					diaInt, theTime, err := stringToTime(currentStringSchedule)
+					if err != nil {
+						return nil, err
+					}
+
+					if debug {
+						fmt.Printf("[DEBUG] DIA: %s STRUCT TIME: %+v\n\n", Days[diaInt], theTime)
+					}
+
+					currentSchedule := NewSchedule()
+					currentSchedule.start = theTime[0]
+					currentSchedule.end = theTime[1]
+					currentSchedule.day = diaInt
+
+					currentComision.schedules = append(currentComision.schedules, currentSchedule)
+				}
+				if strings.Contains(textLine, ",") {
+					currentComision.teachers = append(currentComision.teachers, textLine)
+				}
+			}
+		}
+	}
+	if debug {
+		fmt.Printf("[DEBUG] Se termino de buscar Class. GatherClass Over (%d)\n", line)
+	}
+	allClasses = append(allClasses, currentClass)
+	if err != nil {
+		err = fmt.Errorf("Hubo un error (%d): %s\n", line, err)
+	}
+	return &allClasses, err
+}
 //func main() {
 //	criteria := NewScheduleCriteria()
 //	criteria.maxSuperposition = 5.2 // en horas
@@ -242,137 +374,6 @@ func stringToTime(scheduleString string) (int, []timehm, error) {
 	return diaInt, []timehm{timeStart, timeEnd}, nil
 }
 
-func GetSchedules(classes *[]Class, criteria *scheduleCriteria) *[]Cursada {
-	//numberOfClasses := len(*classes)
-	//verifiedScheduleNumber := 0
-	//scheduleListMaster := NewCursadaList()
-	currentSchedule := NewCursada()
-	scheduleListMaster := searcher(classes, &currentSchedule, 0, criteria)
 
-	// Search function: cada instancia de recursividad busca verificar un schedule (lo va fabricando a medida que avanza) y devuelve una lista de schedules verificados y los va juntando en cada instancia
-	if len(*scheduleListMaster) == 0{
-		return nil
-	}
-	return scheduleListMaster
-}
 
-func GatherClasses(filedir string) (*[]Class, error) {
-	f, err := os.Open(filedir)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
 
-	line := 0
-
-	reClassNumber := regexp.MustCompile(`[0-9]{2}\.[0-9]{2}`)
-	reSchedule := regexp.MustCompile(`^[\s]{0,99}[A-Za-zéá�]{5,9}[\s][0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
-	reComisionLabel := regexp.MustCompile(`(?:^[\s]{0,99})[A-Z]{1,8}(?:[\s]{0,99}$)`)
-	reEndComision := regexp.MustCompile(`^[\s]{0,99}[0-9]{1,4}[\/\s]{1,3}[0-9]{1,4}[\s]{0,99}$`)
-	reEAccent := regexp.MustCompile(`[�]{1}`)
-
-	var (
-		currentClass          Class
-		allClasses            []Class
-		numberString          string
-		currentStringSchedule string
-	)
-
-	for scanner.Scan() {
-		line++
-		textLine := scanner.Text()
-
-		if len(textLine) == 0 {
-			continue
-		}
-		//Sanitize unicode disgusting badness
-		// Si encuentro una clase
-		for reClassNumber.MatchString(textLine) {
-			if debug {
-				fmt.Printf("[DEBUG] Nueva class hallada (%d)\n", line)
-			}
-			currentClass = NewClass()
-			numberString = reClassNumber.FindString(textLine)
-			currentClass.num1, err = strconv.Atoi(numberString[0:2])
-			if err != nil {
-				break
-			}
-			currentClass.num2, err = strconv.Atoi(numberString[3:5])
-			if err != nil {
-				break
-			}
-			currentClass.name = textLine[8:]
-
-			currentComision := NewComision()
-			// Entro en el for loop de las comisiones
-			for scanner.Scan() {
-				line++
-				textLine = scanner.Text()
-				if reClassNumber.MatchString(textLine) {
-					allClasses = append(allClasses, currentClass)
-					if debug {
-						fmt.Printf("[DEBUG] Fin de class y comienzo de otra hallada (%d)\n", line)
-					}
-					break
-				}
-				// Si es una comision:
-				if reComisionLabel.MatchString(textLine) {
-					if debug {
-						fmt.Printf("[DEBUG] Nueva Comision %s encontrada (%d)\n", textLine, line)
-					}
-					if currentComision.label != "" {
-						if debug {
-							fmt.Printf("[DEBUG] Comision %s append a class (%d)\n", currentComision.label, line)
-						}
-						currentClass.comisiones = append(currentClass.comisiones, currentComision)
-						currentComision = NewComision()
-					}
-
-					currentComision.label = reComisionLabel.FindString(textLine)
-
-				}
-
-				if reEndComision.MatchString(textLine) {
-					currentClass.comisiones = append(currentClass.comisiones, currentComision)
-					if debug {
-						fmt.Printf("[DEBUG] Fin de una comision. (%d)\n", line)
-					}
-					continue
-				}
-
-				currentStringSchedule = reSchedule.FindString(textLine)
-
-				if currentStringSchedule != "" {
-					currentStringSchedule = reEAccent.ReplaceAllString(currentStringSchedule, "é")
-					diaInt, theTime, err := stringToTime(currentStringSchedule)
-					if err != nil {
-						return nil, err
-					}
-
-					if debug {
-						fmt.Printf("[DEBUG] DIA: %s STRUCT TIME: %+v\n\n", Days[diaInt], theTime)
-					}
-
-					currentSchedule := NewSchedule()
-					currentSchedule.start = theTime[0]
-					currentSchedule.end = theTime[1]
-					currentSchedule.day = diaInt
-
-					currentComision.schedules = append(currentComision.schedules, currentSchedule)
-				}
-				if strings.Contains(textLine, ",") {
-					currentComision.teachers = append(currentComision.teachers, textLine)
-				}
-			}
-		}
-	}
-	if debug {
-		fmt.Printf("[DEBUG] Se termino de buscar Class. GatherClass Over (%d)\n", line)
-	}
-	allClasses = append(allClasses, currentClass)
-	if err != nil {
-		err = fmt.Errorf("Hubo un error (%d): %s\n", line, err)
-	}
-	return &allClasses, err
-}

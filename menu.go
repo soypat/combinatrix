@@ -13,8 +13,9 @@ type menu struct {
 	selectedColor ui.Color
 	fitting
 	associatedList *widgets.List
-
+	// asociado a una accion/seleccion:
 	selection int
+	action string
 }
 
 func NewMenu() menu {
@@ -45,8 +46,8 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 		polling = getRequest(askedToPoll, polling)
 
 		if polling {
-
-			switch AskForKeyPress() {
+			keyIdentifier := AskForKeyPress()
+			switch keyIdentifier {
 			case "":
 				time.Sleep(time.Millisecond * 20)
 			case "<Up>","j":
@@ -56,11 +57,14 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 				theMenu.associatedList.ScrollDown()
 			case "<Enter>":
 				theMenu.selection = theMenu.associatedList.SelectedRow
+				theMenu.action = keyIdentifier
 			case "<End>":
 				theMenu.associatedList.ScrollBottom()
 			case "<Home>":
 				theMenu.associatedList.ScrollTop()
 			default:
+				theMenu.selection = theMenu.associatedList.SelectedRow
+				theMenu.action = keyIdentifier
 				continue
 			}
 			theMenu.associatedList.SelectedRowStyle = ui.NewStyle(theMenu.selectedColor)
@@ -72,19 +76,19 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 }
 
 type fitting struct {
-	widthStart  [2]int
-	heightStart [2]int
-	widthEnd    [2]int
-	heightEnd   [2]int
+	widthStart  [3]int
+	heightStart [3]int
+	widthEnd    [3]int
+	heightEnd   [3]int
 }
 
 func (P fitting) getRect() (int, int, int, int) {
 	width, height := ui.TerminalDimensions()
-	if P.widthStart[0] == 0 {
-		P.widthStart[0] = 99999999
-	}
-	if P.heightStart[0] == 0 {
-		P.heightStart[0] = 99999999
-	}
-	return width/P.widthStart[0] + P.widthStart[1], height/P.heightStart[0] + P.heightStart[1], width/P.widthEnd[0] + P.widthEnd[1], height/P.heightEnd[0] + P.heightEnd[1]
+	//if P.widthStart[0] == 0 {
+	//	P.widthStart[0] = 99999999
+	//}
+	//if P.heightStart[0] == 0 {
+	//	P.heightStart[0] = 99999999
+	//}
+	return width*P.widthStart[0]/P.widthStart[1]+P.widthStart[2], height*P.heightStart[0]/P.heightStart[1]+P.heightStart[2], width*P.widthEnd[0]/P.widthEnd[1]+P.widthStart[2], height*P.heightEnd[0]/P.heightEnd[1]+P.heightEnd[2]
 }
