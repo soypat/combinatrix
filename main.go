@@ -26,14 +26,6 @@ Programado en Go.
 Patricio Whittingslow 2019.`
 
 func main() {
-
-	//	statusBulletin.title = "Status"
-	//	statusBulletin.message = `
-	//
-	//Programado en Go.
-	//Patricio Whittingslow 2019.`
-	//	statusBulletin.color = theme()
-
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
 	//splash(1) // TODO debug TEMP
@@ -43,7 +35,7 @@ func main() {
 	}
 	defer ui.Close()
 
-	//defer close(askToPollKeyPress)
+	defer close(askToPollKeyPress)
 
 	InitBulletin(&statusBulletin)
 	statusBulletin.Post(welcomeText)
