@@ -1,6 +1,6 @@
 # Combinatrix
 
-<a href="https://imgflip.com/gif/2ydg9p"><img src="https://i.imgflip.com/2ydg9p.gif" title="made at imgflip.com"/></a>
+[<img src="./_assets/combinatrix_promo.gif" alt="Demo of splash screen" width="100%">](./main.go)
 
 Combinar horarios para ITBA """dinamicamente""" 
 Sos un alumno de tercer a~no. El dia antes de anotarse para las materias que queres te das cuenta:
