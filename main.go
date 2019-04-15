@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var versionNumber = "2019.10"
+const versionNumber = "2019.ALPHA"
 
 var isExiting = false
 
@@ -19,6 +19,7 @@ var colorWheel = []ui.Color{ui.ColorGreen, ui.ColorBlue, ui.ColorCyan, ui.ColorY
 
 var selectedTheme = 0
 var askToPollKeyPress = make(chan string)
+var version = widgets.NewParagraph()
 
 const welcomeText = `
 
@@ -28,7 +29,8 @@ Patricio Whittingslow 2019.`
 func main() {
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
-	//splash(1) // TODO debug TEMP
+
+	//splash(2) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -45,7 +47,7 @@ func main() {
 	}
 	fileList := NewMenu()
 	fileList.options = displayedFileNames
-	fileList.fitting  = CreateFitting([3]int{0, 1, 0},[3]int{0, 1, 0},[3]int{1, 3, 0}, [3]int{1, 2, 0})
+	fileList.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{1, 2, 0})
 	fileList.title = "Seleccionar Archivo de materias"
 	InitMenu(&fileList)
 
@@ -65,115 +67,195 @@ RESETCLASSSELECTION:
 			break
 		}
 		time.Sleep(20 * time.Millisecond)
-		break // TODO DEBUG remove
+		break //  DEBUG
 	}
-	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat"
-	Classes, err := GatherClasses(myFile) // TODO fix something in here. Returning same class twice
+	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat" // DEBUG
+	Classes, err := GatherClasses(myFile) // DEBUG COMMENT
 	//TODO uncomment below
 	//fileDir := fileNames[fileList.selection]
-	//Classes, err := GatherClasses(fileDir[2:]) // TODO DEBUG uncomment
+	//Classes, err := GatherClasses(fileDir[2:]) //  DEBUG COMMENT
 	if err != nil {
 		statusBulletin.Error("Error leyendo archivo.", err)
 		fileList.selection = -1
 		goto RESETCLASSSELECTION
 	}
+	askToPollFileList <- false
+	close(askToPollFileList)
+	mainLoop(&statusBulletin, Classes)
+
+	return
+}
+
+func mainLoop(statusBulletin *bulletin, Classes []*Class) {
+	var err error
+
 	ClassNames := []string{}
 	for _, v := range Classes {
 		ClassNames = append(ClassNames, v.name)
 	}
-	classMenu := NewMenu()
-	classMenu.options = ClassNames
-	classMenu.fitting = CreateFitting([3]int{1, 3, 0},[3]int{0, 1, 0},[3]int{2, 3, 0},[3]int{2, 3, 0})
-	classMenu.title = "Clases halladas"
-	InitMenu(&classMenu)
-	askToPollClassList := make(chan bool)
+	instrucciones := `Navegue con las flechas. 
 
-	askToPollFileList <- false
+Presione Escape para volver a selección de clase.`
+
+
 	ui.Clear()
-	close(askToPollFileList)
-	statusBulletin.Post(`Se pueden borrar clases. Apretar ENTER para continuar...`)
+	//var askToPollClassList chan bool
 
-	go classMenu.Poller(askToPollClassList)
-	askToPollClassList <- true
+	for {
+		//if askToPollClassList != nil {
+		//	close(askToPollClassList)
+		//}
+		var classMenu menu
 
-	removedClassString := []string{}
-	amountOfClassesRemoved := 0
-	keepGoing := true
 
-	for keepGoing {
-		break // TODO debug remove
+		// TODO Mystery here. Optimize with overlaying objects? Optimize with what? wtf bbq? not letting me declare goroutine outside. Make more loop functions?
+		var removedClassString []string
+		var amountOfClassesRemoved int
+		var keepGoing bool
+		statusBulletin.Post("Se pueden borrar clases. Apretar ENTER para continuar...")
+		askToPollClassList := make(chan bool)
+		classMenu = NewMenu()
+		classMenu.options = ClassNames
+		classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
+		classMenu.title = "Clases halladas"
+		InitMenu(&classMenu)
+		//statusBulletin.Refresh()
 
-		switch classMenu.action {
-		case "<Delete>":
-			classMenu.action = ""
-			//close(askToPollClassList)
-			if len(classMenu.options) <= 1 {
-				continue
-			}
+		//askToPollClassList <- true
+		go classMenu.Poller(askToPollClassList)
+		askToPollClassList <- true
 
-			removedClassString = append(removedClassString, classMenu.options[classMenu.selection])
-			classMenu.options = removeS(classMenu.options, classMenu.selection)
-			InitMenu(&classMenu)
-			amountOfClassesRemoved++
-		case "<C-z>", "<C-Z>":
-			//classMenu.action =""
-			if amountOfClassesRemoved > 0 {
-				amountOfClassesRemoved--
-				classMenu.options = append(classMenu.options, removedClassString[amountOfClassesRemoved])
-				removedClassString = removeS(removedClassString, amountOfClassesRemoved)
+		removedClassString = []string{}
+		amountOfClassesRemoved = 0
+		keepGoing = true
 
+		for keepGoing { //
+			//break // TODO debug remove
+
+			switch classMenu.action {
+			case "<Delete>":
+				classMenu.action = ""
+				if len(classMenu.options) <= 1 {
+					time.Sleep(time.Millisecond*1000)
+					continue
+				}
+
+				removedClassString = append(removedClassString, classMenu.options[classMenu.selection])
+				classMenu.options = removeS(classMenu.options, classMenu.selection)
 				InitMenu(&classMenu)
-			}
-		case "d": //debug command
-			fmt.Printf("%v\n", classMenu.options)
-		case "<Enter>":
-			keepGoing = false
-		}
-		classMenu.action = ""
-		time.Sleep(20 * time.Millisecond)
+				amountOfClassesRemoved++
+			case "<C-z>", "<C-Z>":
+				classMenu.action =""
+				if amountOfClassesRemoved > 0 {
+					amountOfClassesRemoved--
+					classMenu.options = append(classMenu.options, removedClassString[amountOfClassesRemoved])
+					removedClassString = removeS(removedClassString, amountOfClassesRemoved)
 
-	}
-	ui.Clear()
-	classMenu.fitting = CreateFitting([3]int{0, 1, 0},[3]int{0, 1, 0},[3]int{1, 3, 0},[3]int{3, 3, 0})
-	InitMenu(&classMenu)
-
-	var workingClasses []*Class
-	var classRemoved bool
-	if len(removedClassString) > 0 {
-		for _, v := range Classes {
-			classRemoved = false
-			for _, s := range removedClassString {
-				if v.name == s {
-					classRemoved = true
+					InitMenu(&classMenu)
 				}
-				if !classRemoved {
-					workingClasses = append(workingClasses, v)
-				}
+			case "d": //debug command
+				classMenu.action = ""
+				fmt.Printf("%v\n", classMenu.options)
+			case "<Enter>":
+				classMenu.action = ""
+				keepGoing = false
+			default:
+				time.Sleep(40 * time.Millisecond)
 			}
 		}
-	} else {
-		workingClasses = Classes
+
+		var workingClasses []*Class
+		var classRemoved bool
+		if len(removedClassString) > 0 {
+			for _, v := range Classes {
+				classRemoved = false
+				for _, s := range removedClassString {
+					if v.name == s {
+						classRemoved = true
+					}
+					if !classRemoved {
+						workingClasses = append(workingClasses, v)
+					}
+				}
+			}
+		} else {
+			workingClasses = Classes
+		}
+		ui.Clear()
+		classMenu.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{3, 3, 0})
+
+		// TODO add criteria menu
+		combinatrix := PossibleCombinations(workingClasses)
+
+		criteria := NewScheduleCriteria()
+		cursadasMaster := GetSchedules(workingClasses, &criteria)
+		if cursadasMaster == nil {
+			err = errors.New("No se hallaron combinaciones.")
+			statusBulletin.Error("", err)
+		}
+		var week []*menu
+		for i := 0; i < 5; i++ {
+			emptyMenu := NewMenu()
+			week = append(week, &emptyMenu)
+		}
+		askToPollClassList <- false
+
+		keepGoing = true
+		currentCursada := 0
+
+		var unrender = true
+		for keepGoing {
+			if currentCursada > len(*cursadasMaster)-1 {
+				currentCursada = 0
+			} else if currentCursada < 0 {
+				currentCursada = len(*cursadasMaster) - 1
+			}
+			if unrender {
+				UnrenderMenuSlice(week)
+				time.Sleep(time.Millisecond*5)
+				unrender = false
+				indexString := fmt.Sprintf("Cursada %d/%d. ",currentCursada+1,len(*cursadasMaster))
+				if currentCursada == 0 {
+					posiblesComb := fmt.Sprintf("\n%d combinaciones posibles.\n%d descartadas.\n%d Combinaciones viables\n\n", combinatrix, combinatrix-len(*cursadasMaster), len(*cursadasMaster))
+					statusBulletin.Post(indexString+posiblesComb+instrucciones)
+					PrintVersion()
+				} else {
+					statusBulletin.Post(indexString+instrucciones)
+					PrintVersion()
+				}
+			}
+
+
+
+			err = RenderCursada(Classes, &(*cursadasMaster)[currentCursada], week)
+			//break  // DEBUG
+
+			if err != nil {
+				statusBulletin.Error("No se pudo mostrar horarios:", err)
+			} else {
+				pressed := AskForKeyPress()
+				switch pressed {
+				case "":
+					time.Sleep(time.Millisecond * 20)
+					continue
+				case "<Right>":
+					unrender = true
+					currentCursada++
+				case "<Left>":
+					unrender = true
+					currentCursada--
+				case "<Escape>":
+					statusBulletin.Post("Escape not implemented")
+					UnrenderMenuSlice(week)
+					keepGoing = false
+				case "<C-p>","<C-P>":
+					statusBulletin.Post("Print!")
+				}
+			}
+
+
+		}
 	}
-	// TODO add criteria menu
-	combinatrix := PossibleCombinations(workingClasses)
-
-	criteria := NewScheduleCriteria()
-	cursadasMaster := GetSchedules(workingClasses, &criteria)
-	if cursadasMaster == nil {
-		err = errors.New("No se hallaron combinaciones.")
-		statusBulletin.Error("", err)
-	}
-	ui.Clear()
-
-	//var theWeek [5]menu
-
-	keepGoing = true
-	for keepGoing {
-		statusBulletin.Post(fmt.Sprintf("%d combinaciones posibles. %d descartadas. %d Combinaciones viables", combinatrix, combinatrix-len(*cursadasMaster), len(*cursadasMaster)))
-		time.Sleep(time.Millisecond * 500)
-	}
-
-	return
 }
 
 // ░▒▓█ FOUR VALUE CHARACTER
@@ -209,10 +291,7 @@ func splash(seconds time.Duration) {
 	exitMessage.Border = false
 	exitMessage.Text = `                   Presione (q) para salir`
 	exitMessage.SetRect(xPos, (height+yPos+8)/2-1, xPos+61, height+2)
-	version := widgets.NewParagraph()
-	version.Border = false
-	version.SetRect(width-len(versionNumber)-2, height-2, width+2, height+2)
-	version.Text = versionNumber
+	PrintVersion()
 	splash := widgets.NewParagraph()
 	splash.SetRect(xPos, yPos, xPos+61, yPos+8)
 
@@ -225,7 +304,7 @@ func splash(seconds time.Duration) {
  \____/\___/|_| |_| |_|_.__/|_|_| |_|\__,_|\__|_|  |_/_/\_\` //58 lines wide, 8 lines high
 	splash.TextStyle = ui.NewStyle(colorWheel[selectedTheme])
 	splash.Text = splashText
-	ui.Render(version)
+
 	ui.Render(welcome)
 	ui.Render(exitMessage)
 	ui.Render(splash)
@@ -244,6 +323,16 @@ func splash(seconds time.Duration) {
 func wait(seconds time.Duration) {
 	time.Sleep(time.Second * seconds)
 }
+
+func PrintVersion() {
+	width,height := ui.TerminalDimensions()
+
+	version.Border = false
+	version.SetRect(width-len(versionNumber)-2, height-2, width+2, height+2)
+	version.Text = versionNumber
+	ui.Render(version)
+}
+
 func AskForKeyPress() string {
 	select {
 	case pressed := <-askToPollKeyPress:
@@ -265,7 +354,7 @@ func pollKeyboard() { // Writes pressed key to channel
 	for {
 		e := <-uiEvents
 		switch e.ID {
-		case "q", "<C-q>", "Q":
+		case "q", "Q":
 			isExiting = true
 			close(askToPollKeyPress)
 			ui.Clear()
@@ -280,7 +369,9 @@ func pollKeyboard() { // Writes pressed key to channel
 			}
 
 		default:
+
 			askToPollKeyPress <- e.ID
+			time.Sleep(time.Millisecond*10)
 		}
 	}
 }

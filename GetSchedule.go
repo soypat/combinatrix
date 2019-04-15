@@ -83,7 +83,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 		comisionAppended      bool
 	)
 	badChar := '�'
-	for scanner.Scan() {
+	for scanner.Scan() {  // SCANNER SUPERIOR
 		line++
 		textLine := scanner.Text()
 
@@ -96,7 +96,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 			if debug {
 				fmt.Printf("[DEBUG] Nueva class hallada (%d)\n", line)
 			}
-			currentClass = NewClass()
+			currentClass := NewClass()
 			numberString = reClassNumber.FindString(textLine)
 			currentClass.num1, err = strconv.Atoi(numberString[0:2])
 			if err != nil {

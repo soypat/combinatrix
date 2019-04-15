@@ -27,8 +27,16 @@ func InitMenu(theMenu *menu) {
 	menu.Rows = theMenu.options
 	menu.Title = theMenu.title
 	menu.TextStyle = ui.NewStyle(theMenu.color)
+	menu.SelectedRowStyle = ui.NewStyle(theMenu.selectedColor)
 	menu.SetRect(theMenu.fitting.getRect())
-	theMenu.associatedList = menu
+	menu.Border = theMenu.border
+
+
+	theMenu.associatedList = menu // LAST LINE
+}
+
+func RenderMenu(theMenu *menu) {
+	ui.Render(theMenu.associatedList)
 }
 
 func (theMenu *menu) Poller(askedToPoll <-chan bool) {
@@ -113,5 +121,5 @@ func (theMenu menu) GetDims() (X int, Y int) {
 
 func (P fitting) getRect() (int, int, int, int) {
 	width, height := ui.TerminalDimensions()
-	return width*P.widthStart[0]/P.widthStart[1] + P.widthStart[2], height*P.heightStart[0]/P.heightStart[1] + P.heightStart[2], width*P.widthEnd[0]/P.widthEnd[1] + P.widthStart[2], height*P.heightEnd[0]/P.heightEnd[1] + P.heightEnd[2]
+	return width*P.widthStart[0]/P.widthStart[1] + P.widthStart[2], height*P.heightStart[0]/P.heightStart[1] + P.heightStart[2], width*P.widthEnd[0]/P.widthEnd[1] + P.widthEnd[2], height*P.heightEnd[0]/P.heightEnd[1] + P.heightEnd[2]
 }

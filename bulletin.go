@@ -51,13 +51,14 @@ func (myBulletin *bulletin) Refresh() {
 
 func (myBulletin *bulletin) Post(str string) {
 	myBulletin.message = str
-	myBulletin.speaker(myBulletin) // More brainfuckery
+
+	myBulletin.speaker(myBulletin)
 }
 func (myBulletin *bulletin) Error(message string, err error) {
 	message = fmt.Sprintf(message+"\n", err)
 	myBulletin.message = message
 	myBulletin.color = ui.ColorRed
-	myBulletin.speaker(myBulletin) // More brainfuckery
+	myBulletin.speaker(myBulletin)
 }
 
 func NewBulletin() bulletin {
