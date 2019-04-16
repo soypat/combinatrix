@@ -2,23 +2,17 @@
 
 [<img src="./_assets/combinatrix_promo.gif" alt="Demo of splash screen" width="100%">](./main.go)
 
-Combinar horarios para ITBA """dinamicamente""" 
-Sos un alumno de tercer a~no. El dia antes de anotarse para las materias que queres te das cuenta:
-no solo tenes que combinar horarios de las materias que queres, tenes que combinar... las materias mismas!
+### Combinar horarios para ITBA """dinamicamente""" 
+
+## Motivación
+Sos un alumno de tercer año. El día antes de anotarse para las materias que queres te das cuenta:
+no solo tenes que combinar horarios de materias, tenes que combinar... las materias mismas!
 
 Enter: Combinatrix. La plataforma del futuro. Lo que Combinar Horarios (Matias Dwek (C)) nunca fue.
-La salvacion. La esperanza. El rayo de luz en las tinieblas. Se entiende?
+La salvación. La esperanza. El rayo de luz en las tinieblas. Se entiende?
 
-El 'goal' de Combinatrix es guardar a memoria todas las materias que el usuario tiene la oportunidad de cursar (El usuario eligira)
-y dejar que el usuario vaya eligiendo combinaciones facilmente con un interfaz grafico.
-Con cada combinacion de materias el programa devuelve cantidad de horarios posibles, cant. dias libres, cant. creditos y mas! (?)
+## Objetivo
+Un interfaz gráfico donde el usuario pueda elegir criterios para la combinación de materias. Estos incluyen, pero no están limitados a días libres, superposiciones permitidas. Que devuelva cada cursada posible en la misma interfaz grafica y permir
 
-Estas combinaciones de horarios se pueden escribir a .txt  o ser contenidas en el programa mismo.(*)
-
-
-
-
-(*)Se me ocurre que el usuario cargue todas las materias que le interesa antes de hacer combinaciones, 
-de esta forma se puede tener una 'semilla' para cada combinacion de materias. Creo que seria un toquecito
-mas facil de manejarse si se contienen los horarios en GUI (menos uso de memoria). 
-Por ahora es asi como esta dise~nado.
+## Donde estamos
+Por ahora no están habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de meter todo. 
