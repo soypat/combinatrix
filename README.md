@@ -2,7 +2,7 @@
 
 [<img src="./_assets/combinatrix_promo.gif" alt="Demo of splash screen" width="100%">](./main.go)
 
-### Combinar horarios para ITBA """dinamicamente""" 
+### Combinar horarios para ITBA """dinámicamente""" 
 
 ## Motivación
 Sos un alumno de tercer año. El día antes de anotarse para las materias que queres te das cuenta:
