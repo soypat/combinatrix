@@ -30,7 +30,7 @@ func main() {
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
 
-	//splash(2) // TODO debug TEMP
+	splash(2) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -41,7 +41,7 @@ func main() {
 
 	InitBulletin(&statusBulletin)
 	statusBulletin.Post(welcomeText)
-	displayedFileNames, _, err := fileListCurrentDirectory(54) // TODO DEBUG fileNames
+	displayedFileNames, fileNames, err := fileListCurrentDirectory(54) // TODO DEBUG fileNames
 	if err != nil {
 		log.Fatalf("Fail to read files Combinatrix: %v", err)
 	}
@@ -67,13 +67,13 @@ RESETCLASSSELECTION:
 			break
 		}
 		time.Sleep(20 * time.Millisecond)
-		break //  DEBUG
+		//break //TODO  DEBUG
 	}
-	myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat" // DEBUG
-	Classes, err := GatherClasses(myFile) // DEBUG COMMENT
+	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat" // DEBUG
+	//Classes, err := GatherClasses(myFile)                                      // DEBUG COMMENT
 	//TODO uncomment below
-	//fileDir := fileNames[fileList.selection]
-	//Classes, err := GatherClasses(fileDir[2:]) //  DEBUG COMMENT
+	fileDir := fileNames[fileList.selection]
+	Classes, err := GatherClasses(fileDir[2:]) //  DEBUG COMMENT
 	if err != nil {
 		statusBulletin.Error("Error leyendo archivo.", err)
 		fileList.selection = -1
@@ -81,7 +81,9 @@ RESETCLASSSELECTION:
 	}
 	askToPollFileList <- false
 	close(askToPollFileList)
-	mainLoop(&statusBulletin, Classes)
+	for {
+		mainLoop(&statusBulletin, Classes)
+	}
 
 	return
 }
@@ -97,165 +99,161 @@ func mainLoop(statusBulletin *bulletin, Classes []*Class) {
 
 Presione Escape para volver a selección de clase.`
 
-
 	ui.Clear()
 	//var askToPollClassList chan bool
 
-	for {
-		//if askToPollClassList != nil {
-		//	close(askToPollClassList)
-		//}
-		var classMenu menu
+	//if askToPollClassList != nil {
+	//	close(askToPollClassList)
+	//}
+	var classMenu menu
 
+	// TODO Mystery here. Optimize with overlaying objects? Optimize with what? wtf bbq? not letting me declare goroutine outside. Make more loop functions?
+	var removedClassString []string
+	var amountOfClassesRemoved int
+	var keepGoing bool
+	statusBulletin.Post("Se pueden borrar clases. Apretar ENTER para continuar...")
+	askToPollClassList := make(chan bool)
+	classMenu = NewMenu()
+	classMenu.options = ClassNames
+	classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
+	classMenu.title = "Clases halladas"
+	InitMenu(&classMenu)
+	//statusBulletin.Refresh()
 
-		// TODO Mystery here. Optimize with overlaying objects? Optimize with what? wtf bbq? not letting me declare goroutine outside. Make more loop functions?
-		var removedClassString []string
-		var amountOfClassesRemoved int
-		var keepGoing bool
-		statusBulletin.Post("Se pueden borrar clases. Apretar ENTER para continuar...")
-		askToPollClassList := make(chan bool)
-		classMenu = NewMenu()
-		classMenu.options = ClassNames
-		classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
-		classMenu.title = "Clases halladas"
-		InitMenu(&classMenu)
-		//statusBulletin.Refresh()
+	//askToPollClassList <- true
+	go classMenu.Poller(askToPollClassList)
+	askToPollClassList <- true
 
-		//askToPollClassList <- true
-		go classMenu.Poller(askToPollClassList)
-		askToPollClassList <- true
+	removedClassString = []string{}
+	amountOfClassesRemoved = 0
+	keepGoing = true
 
-		removedClassString = []string{}
-		amountOfClassesRemoved = 0
-		keepGoing = true
+	for keepGoing { //
+		//break // TODO debug remove
 
-		for keepGoing { //
-			//break // TODO debug remove
+		switch classMenu.action {
+		case "<Delete>":
+			classMenu.action = ""
+			if len(classMenu.options) <= 1 {
+				time.Sleep(time.Millisecond * 1000)
+				continue
+			}
 
-			switch classMenu.action {
-			case "<Delete>":
-				classMenu.action = ""
-				if len(classMenu.options) <= 1 {
-					time.Sleep(time.Millisecond*1000)
-					continue
-				}
+			removedClassString = append(removedClassString, classMenu.options[classMenu.selection])
+			classMenu.options = removeS(classMenu.options, classMenu.selection)
+			InitMenu(&classMenu)
+			amountOfClassesRemoved++
+		case "<C-z>", "<C-Z>":
+			classMenu.action = ""
+			if amountOfClassesRemoved > 0 {
+				amountOfClassesRemoved--
+				classMenu.options = append(classMenu.options, removedClassString[amountOfClassesRemoved])
+				removedClassString = removeS(removedClassString, amountOfClassesRemoved)
 
-				removedClassString = append(removedClassString, classMenu.options[classMenu.selection])
-				classMenu.options = removeS(classMenu.options, classMenu.selection)
 				InitMenu(&classMenu)
-				amountOfClassesRemoved++
-			case "<C-z>", "<C-Z>":
-				classMenu.action =""
-				if amountOfClassesRemoved > 0 {
-					amountOfClassesRemoved--
-					classMenu.options = append(classMenu.options, removedClassString[amountOfClassesRemoved])
-					removedClassString = removeS(removedClassString, amountOfClassesRemoved)
-
-					InitMenu(&classMenu)
-				}
-			case "d": //debug command
-				classMenu.action = ""
-				fmt.Printf("%v\n", classMenu.options)
-			case "<Enter>":
-				classMenu.action = ""
-				keepGoing = false
-			default:
-				time.Sleep(40 * time.Millisecond)
 			}
-		}
-
-		var workingClasses []*Class
-		var classRemoved bool
-		if len(removedClassString) > 0 {
-			for _, v := range Classes {
-				classRemoved = false
-				for _, s := range removedClassString {
-					if v.name == s {
-						classRemoved = true
-					}
-					if !classRemoved {
-						workingClasses = append(workingClasses, v)
-					}
-				}
-			}
-		} else {
-			workingClasses = Classes
-		}
-		ui.Clear()
-		classMenu.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{3, 3, 0})
-
-		// TODO add criteria menu
-		combinatrix := PossibleCombinations(workingClasses)
-
-		criteria := NewScheduleCriteria()
-		cursadasMaster := GetSchedules(workingClasses, &criteria)
-		if cursadasMaster == nil {
-			err = errors.New("No se hallaron combinaciones.")
-			statusBulletin.Error("", err)
-		}
-		var week []*menu
-		for i := 0; i < 5; i++ {
-			emptyMenu := NewMenu()
-			week = append(week, &emptyMenu)
-		}
-		askToPollClassList <- false
-
-		keepGoing = true
-		currentCursada := 0
-
-		var unrender = true
-		for keepGoing {
-			if currentCursada > len(*cursadasMaster)-1 {
-				currentCursada = 0
-			} else if currentCursada < 0 {
-				currentCursada = len(*cursadasMaster) - 1
-			}
-			if unrender {
-				UnrenderMenuSlice(week)
-				time.Sleep(time.Millisecond*5)
-				unrender = false
-				indexString := fmt.Sprintf("Cursada %d/%d. ",currentCursada+1,len(*cursadasMaster))
-				if currentCursada == 0 {
-					posiblesComb := fmt.Sprintf("\n%d combinaciones posibles.\n%d descartadas.\n%d Combinaciones viables\n\n", combinatrix, combinatrix-len(*cursadasMaster), len(*cursadasMaster))
-					statusBulletin.Post(indexString+posiblesComb+instrucciones)
-					PrintVersion()
-				} else {
-					statusBulletin.Post(indexString+instrucciones)
-					PrintVersion()
-				}
-			}
-
-
-
-			err = RenderCursada(Classes, &(*cursadasMaster)[currentCursada], week)
-			//break  // DEBUG
-
-			if err != nil {
-				statusBulletin.Error("No se pudo mostrar horarios:", err)
-			} else {
-				pressed := AskForKeyPress()
-				switch pressed {
-				case "":
-					time.Sleep(time.Millisecond * 20)
-					continue
-				case "<Right>":
-					unrender = true
-					currentCursada++
-				case "<Left>":
-					unrender = true
-					currentCursada--
-				case "<Escape>":
-					statusBulletin.Post("Escape not implemented")
-					UnrenderMenuSlice(week)
-					keepGoing = false
-				case "<C-p>","<C-P>":
-					statusBulletin.Post("Print!")
-				}
-			}
-
-
+		case "d": //debug command
+			classMenu.action = ""
+			fmt.Printf("%v\n", classMenu.options)
+		case "<Enter>":
+			classMenu.action = ""
+			keepGoing = false
+		default:
+			time.Sleep(40 * time.Millisecond)
 		}
 	}
+
+	var workingClasses []*Class
+	var classRemoved bool
+	if len(removedClassString) > 0 {
+		for _, v := range Classes {
+			classRemoved = false
+			for _, s := range removedClassString {
+				if v.name == s {
+					classRemoved = true
+				}
+				if !classRemoved {
+					workingClasses = append(workingClasses, v)
+				}
+			}
+		}
+	} else {
+		workingClasses = Classes
+	}
+	ui.Clear()
+	classMenu.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{3, 3, 0})
+
+	// TODO add criteria menu
+	combinatrix := PossibleCombinations(workingClasses)
+
+	criteria := NewScheduleCriteria()
+	cursadasMaster := GetSchedules(workingClasses, &criteria)
+	if cursadasMaster == nil {
+		err = errors.New("No se hallaron combinaciones.")
+		statusBulletin.Error("", err)
+	}
+	var week []*menu
+	for i := 0; i < 5; i++ {
+		emptyMenu := NewMenu()
+		week = append(week, &emptyMenu)
+	}
+	askToPollClassList <- false
+
+	keepGoing = true
+	currentCursada := 0
+
+	var unrender = true
+	for keepGoing {
+		if currentCursada > len(*cursadasMaster)-1 {
+			currentCursada = 0
+		} else if currentCursada < 0 {
+			currentCursada = len(*cursadasMaster) - 1
+		}
+		if unrender {
+			UnrenderMenuSlice(week)
+			time.Sleep(time.Millisecond * 5)
+			unrender = false
+			indexString := fmt.Sprintf("Cursada %d/%d. ", currentCursada+1, len(*cursadasMaster))
+			if currentCursada == 0 {
+				posiblesComb := fmt.Sprintf("\n%d combinaciones posibles.\n%d descartadas.\n%d Combinaciones viables\n\n", combinatrix, combinatrix-len(*cursadasMaster), len(*cursadasMaster))
+				statusBulletin.Post(indexString + posiblesComb + instrucciones)
+				PrintVersion()
+			} else {
+				statusBulletin.Post(indexString + instrucciones)
+				PrintVersion()
+			}
+		}
+
+		err = RenderCursada(Classes, &(*cursadasMaster)[currentCursada], week)
+		//break  // DEBUG
+
+		if err != nil {
+			statusBulletin.Error("No se pudo mostrar horarios:", err)
+		} else {
+			pressed := AskForKeyPress()
+			switch pressed {
+			case "":
+				time.Sleep(time.Millisecond * 20)
+				continue
+			case "<Right>":
+				unrender = true
+				currentCursada++
+			case "<Left>":
+				unrender = true
+				currentCursada--
+			case "<Escape>":
+				//statusBulletin.Post("Escape not implemented")
+				UnrenderMenuSlice(week)
+				keepGoing = false
+			case "<C-p>", "<C-P>":
+				statusBulletin.Post("Print!")
+			}
+		}
+
+	}
+	statusBulletin.Post("Exiting to Classes")
+	time.Sleep(time.Second*2)
+	return
 }
 
 // ░▒▓█ FOUR VALUE CHARACTER
@@ -325,7 +323,7 @@ func wait(seconds time.Duration) {
 }
 
 func PrintVersion() {
-	width,height := ui.TerminalDimensions()
+	width, height := ui.TerminalDimensions()
 
 	version.Border = false
 	version.SetRect(width-len(versionNumber)-2, height-2, width+2, height+2)
@@ -371,7 +369,7 @@ func pollKeyboard() { // Writes pressed key to channel
 		default:
 
 			askToPollKeyPress <- e.ID
-			time.Sleep(time.Millisecond*10)
+			time.Sleep(time.Millisecond * 10)
 		}
 	}
 }

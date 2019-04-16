@@ -69,7 +69,16 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 			}
 			theMenu.associatedList.SelectedRowStyle = ui.NewStyle(theMenu.selectedColor)
 			ui.Render(theMenu.associatedList)
+		} else if askedToPoll == nil {
+			//time.Sleep(1000*time.Millisecond) // TODO make this even cleaner. a return would be fantastic
+			return
 		} else {
+			_, ok := <- askedToPoll // CHECK IF CHANNEL CLOSED
+			if !ok {
+				time.Sleep(20*time.Millisecond)
+				return
+			}
+			time.Sleep(1000*time.Millisecond)
 			theMenu.associatedList.SelectedRowStyle = ui.NewStyle(theMenu.color)
 		}
 	}
