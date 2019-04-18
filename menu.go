@@ -22,6 +22,10 @@ type menu struct {
 func NewMenu() menu {
 	return menu{border: true, color: ui.ColorYellow, selectedColor: ui.ColorClear, selection: -1}
 }
+func (theMenu *menu) GetSelection() int {
+	return theMenu.associatedList.SelectedRow
+}
+
 func InitMenu(theMenu *menu) {
 	menu := widgets.NewList()
 	menu.Rows = theMenu.options

@@ -55,8 +55,12 @@ func (myBulletin *bulletin) Post(str string) {
 	myBulletin.speaker(myBulletin)
 }
 func (myBulletin *bulletin) Error(message string, err error) {
-	message = fmt.Sprintf(message+"\n", err)
-	myBulletin.message = message
+	if err!=nil {
+		message = fmt.Sprintf("%s\n%s",message, err)
+		myBulletin.message = message
+	} else {
+		myBulletin.message = message
+	}
 	myBulletin.color = ui.ColorRed
 	myBulletin.speaker(myBulletin)
 }

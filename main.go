@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
@@ -41,13 +42,22 @@ func main() {
 
 	InitBulletin(&statusBulletin)
 	statusBulletin.Post(welcomeText)
-	displayedFileNames, fileNames, err := fileListCurrentDirectory(54) // TODO DEBUG fileNames
+	fileList := NewMenu()
+
+	fileList.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{1, 2, 0})
+	fileListWidth, _ := fileList.GetDims()
+
+	displayedFileNames, fileNames, err := fileListCurrentDirectory(fileListWidth - 6)
 	if err != nil {
 		log.Fatalf("Fail to read files Combinatrix: %v", err)
 	}
-	fileList := NewMenu()
+	if len(displayedFileNames) < 1 {
+		statusBulletin.Error("No se hallaron archivos en la carpeta de trabajo o las subyacentes. \n\nEl programa cerrará...", nil)
+		time.Sleep(time.Second * 3)
+		return
+	}
 	fileList.options = displayedFileNames
-	fileList.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{1, 2, 0})
+
 	fileList.title = "Seleccionar Archivo de materias"
 	InitMenu(&fileList)
 
@@ -70,12 +80,21 @@ RESETCLASSSELECTION:
 		//break //TODO  DEBUG
 	}
 	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat" // DEBUG
-	//Classes, err := GatherClasses(myFile)                                      // DEBUG COMMENT
+	//Classes, err := GatherClasses(myFile)
+	//fmt.Sprintf(fileNames[1])// DEBUG COMMENT
+	//fileDir:=fileNames[0] // DEBUG
 	//TODO uncomment below
 	fileDir := fileNames[fileList.selection]
-	Classes, err := GatherClasses(fileDir[2:]) //  DEBUG COMMENT
+	Classes, err := GatherClasses(fileDir[2:]) // UNCOMMENTO FOR NORMAL USE
 	if err != nil {
-		statusBulletin.Error("Error leyendo archivo.", err)
+		statusBulletin.Error("Error leyendo archivo:", err)
+		fileList.selection = -1
+		err = nil
+		goto RESETCLASSSELECTION
+	} else if len(Classes) < 1 {
+		err := fmt.Errorf("No se hallaron clases en %s\n\n Verificar formato del archivo", fileDir[2:])
+		statusBulletin.Error("Error al leer archivo:",err)
+		err = nil
 		fileList.selection = -1
 		goto RESETCLASSSELECTION
 	}
@@ -107,14 +126,17 @@ Presione Escape para volver a selección de clase.`
 	//}
 	var classMenu menu
 
-	// TODO Mystery here. Optimize with overlaying objects? Optimize with what? wtf bbq? not letting me declare goroutine outside. Make more loop functions?
 	var removedClassString []string
 	var amountOfClassesRemoved int
 	var keepGoing bool
 	statusBulletin.Post("Se pueden borrar clases. Apretar ENTER para continuar...")
 	askToPollClassList := make(chan bool)
 	classMenu = NewMenu()
-	classMenu.options = ClassNames
+
+	for _, v := range ClassNames {
+		classMenu.options = append(classMenu.options,v )
+	}
+	//classMenu.options = ClassNames
 	classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
 	classMenu.title = "Clases halladas"
 	InitMenu(&classMenu)
@@ -129,20 +151,20 @@ Presione Escape para volver a selección de clase.`
 	keepGoing = true
 
 	for keepGoing { //
-		//break // TODO debug remove
 
 		switch classMenu.action {
-		case "<Delete>":
+		case  "<Delete>":
 			classMenu.action = ""
 			if len(classMenu.options) <= 1 {
-				time.Sleep(time.Millisecond * 1000)
+				time.Sleep(time.Millisecond * 500)
 				continue
 			}
-
-			removedClassString = append(removedClassString, classMenu.options[classMenu.selection])
-			classMenu.options = removeS(classMenu.options, classMenu.selection)
+			removalIndex := classMenu.GetSelection()
+			removedClassString = append(removedClassString, classMenu.options[removalIndex])
+			classMenu.options = removeS(classMenu.options, removalIndex)
 			InitMenu(&classMenu)
 			amountOfClassesRemoved++
+			//keepGoing = false
 		case "<C-z>", "<C-Z>":
 			classMenu.action = ""
 			if amountOfClassesRemoved > 0 {
@@ -164,15 +186,11 @@ Presione Escape para volver a selección de clase.`
 	}
 
 	var workingClasses []*Class
-	var classRemoved bool
+
 	if len(removedClassString) > 0 {
 		for _, v := range Classes {
-			classRemoved = false
 			for _, s := range removedClassString {
-				if v.name == s {
-					classRemoved = true
-				}
-				if !classRemoved {
+				if v.name != s {
 					workingClasses = append(workingClasses, v)
 				}
 			}
@@ -224,7 +242,7 @@ Presione Escape para volver a selección de clase.`
 			}
 		}
 
-		err = RenderCursada(Classes, &(*cursadasMaster)[currentCursada], week)
+		err = RenderCursada(workingClasses, &(*cursadasMaster)[currentCursada], week)
 		//break  // DEBUG
 
 		if err != nil {
@@ -251,8 +269,8 @@ Presione Escape para volver a selección de clase.`
 		}
 
 	}
-	statusBulletin.Post("Exiting to Classes")
-	time.Sleep(time.Second*2)
+	//statusBulletin.Post("Volvined")
+	//time.Sleep(time.Second*2)
 	return
 }
 
@@ -403,8 +421,8 @@ func fileListCurrentDirectory(permittedStringLength int) ([]string, []string, er
 
 	i := 0
 	var shortFileNames, actualFileNames []string
-	shortFileNames = append(files[:0:0], files...)
-	actualFileNames = append(files[:0:0], files...)
+	//shortFileNames = append(files[:0:0], files...)
+	//actualFileNames = append(files[:0:0], files...)
 
 	for _, file := range files {
 		fileLength = len(file)
@@ -417,24 +435,41 @@ func fileListCurrentDirectory(permittedStringLength int) ([]string, []string, er
 		i++
 	}
 	//permittedStringLength := 54
-	i = 0
-
-	for _, file := range files {
-		if len(file) <= minFileLength {
+	//i = 0
+	reDir := regexp.MustCompile(`[\\]{1}[\w]{0,99}$`)
+	reExecutable := regexp.MustCompile(`\.exe$`) // TODO No hace falta estos checks si voy por el otro camino
+	reReadable := regexp.MustCompile(`\.txt$|\.dat$`)
+	// FOR to remove base folder entry y ejecutables
+	//i=0
+	for i = 0; i < len(files); {
+		currentString := files[i]
+		if reDir.MatchString(currentString) || reExecutable.MatchString(currentString) {
 			files = removeS(files, i)
-			shortFileNames = removeS(shortFileNames, i)
-			actualFileNames = removeS(actualFileNames, i)
 			continue
 		}
+		if !reReadable.MatchString(currentString) {
+			files = removeS(files, i)
+			continue
+		}
+		i++
+	}
+
+	for _, file := range files {
+		//if len(file) <= minFileLength {
+		//	files = removeS(files, i)
+		//	shortFileNames = removeS(shortFileNames, i)
+		//	actualFileNames = removeS(actualFileNames, i)
+		//	continue
+		//}
 		if len(file) > permittedStringLength+minFileLength {
 
-			shortFileNames[i] = `~\…` + file[len(file)-permittedStringLength:]
+			shortFileNames = append(shortFileNames, `~\…`+file[len(file)-permittedStringLength:])
 
 		} else {
-			shortFileNames[i] = "~" + file[minFileLength:]
+			shortFileNames = append(shortFileNames, "~"+file[minFileLength:])
 
 		}
-		actualFileNames[i] = "~" + file[minFileLength:]
+		actualFileNames = append(actualFileNames, "~"+file[minFileLength:])
 		i++
 	}
 	return shortFileNames, actualFileNames, nil

@@ -76,11 +76,12 @@ func GatherClasses(filedir string) ([]*Class, error) {
 	reEAccent := regexp.MustCompile(`[�]{1}`)
 
 	var (
-		currentClass          Class
+		//currentClass          Class
 		allClasses            []*Class
 		numberString          string
 		currentStringSchedule string
 		comisionAppended      bool
+		yetToAppendToClasses  bool
 	)
 	badChar := '�'
 	for scanner.Scan() {  // SCANNER SUPERIOR
@@ -116,6 +117,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 				if reClassNumber.MatchString(textLine) {
 					if len(currentClass.comisiones) > 0 {
 						allClasses = append(allClasses, &currentClass)
+						yetToAppendToClasses = false
 					}
 
 					if debug {
@@ -145,6 +147,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 				if reEndComision.MatchString(textLine) {
 					currentClass.comisiones = append(currentClass.comisiones, currentComision)
 					comisionAppended = true
+					yetToAppendToClasses = true
 					if debug {
 						fmt.Printf("[DEBUG] Fin de una comision. (%d)\n", line)
 					}
@@ -184,13 +187,16 @@ func GatherClasses(filedir string) ([]*Class, error) {
 					currentComision.teachers = append(currentComision.teachers, textLine)
 				}
 			}
+			if len(currentClass.comisiones) > 0 && yetToAppendToClasses  {
+				allClasses = append(allClasses, &currentClass)
+
+			}
 		}
+
+
 	}
 	if debug {
 		fmt.Printf("[DEBUG] Se termino de buscar Class. GatherClass Over (%d)\n", line)
-	}
-	if len(currentClass.comisiones) > 0 {
-		allClasses = append(allClasses, &currentClass)
 	}
 
 	if err != nil {
