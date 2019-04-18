@@ -16,3 +16,7 @@ Un interfaz gráfico donde el usuario pueda elegir criterios para la combinació
 
 ## Donde estamos
 Por ahora no están habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de meter todo. 
+
+## FAQ
+### Que hace un código de python ahí?
+Ese fue el primer código que escribí... Febrero de 2017. Retome el proyecto con Go en Marzo 2019.
