@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const versionNumber = "2019.ALPHA"
+const versionNumber = "2019.BETA"
 
 var isExiting = false
 
@@ -31,7 +31,7 @@ func main() {
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
 
-	splash(2) // TODO debug TEMP
+	//splash(2) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -79,7 +79,7 @@ RESETCLASSSELECTION:
 		time.Sleep(20 * time.Millisecond)
 		//break //TODO  DEBUG
 	}
-	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data.dat" // DEBUG
+	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/lottamat.dat" // DEBUG
 	//Classes, err := GatherClasses(myFile)
 	//fmt.Sprintf(fileNames[1])// DEBUG COMMENT
 	//fileDir:=fileNames[0] // DEBUG
@@ -101,13 +101,17 @@ RESETCLASSSELECTION:
 	askToPollFileList <- false
 	close(askToPollFileList)
 	for {
-		mainLoop(&statusBulletin, Classes)
+		err = mainLoop(&statusBulletin, Classes)
+		if err != nil {
+			statusBulletin.Error("Se hallo un error.",err)
+			time.Sleep(time.Second*3)
 	}
+}
 
 	return
 }
 
-func mainLoop(statusBulletin *bulletin, Classes []*Class) {
+func mainLoop(statusBulletin *bulletin, Classes []*Class) error {
 	var err error
 
 	ClassNames := []string{}
@@ -136,14 +140,15 @@ Presione Escape para volver a selección de clase.`
 	for _, v := range ClassNames {
 		classMenu.options = append(classMenu.options,v )
 	}
-	//classMenu.options = ClassNames
+
 	classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
 	classMenu.title = "Clases halladas"
 	InitMenu(&classMenu)
-	//statusBulletin.Refresh()
+	RenderMenu(&classMenu)
 
 	//askToPollClassList <- true
 	go classMenu.Poller(askToPollClassList)
+	defer close(askToPollClassList)
 	askToPollClassList <- true
 
 	removedClassString = []string{}
@@ -179,25 +184,35 @@ Presione Escape para volver a selección de clase.`
 			fmt.Printf("%v\n", classMenu.options)
 		case "<Enter>":
 			classMenu.action = ""
+			classMenu.associatedList.SelectedRowStyle = ui.NewStyle(ui.ColorYellow)
+			InitMenu(&classMenu)
+			RenderMenu(&classMenu)
 			keepGoing = false
 		default:
 			time.Sleep(40 * time.Millisecond)
 		}
 	}
+	askToPollClassList <- false
 
 	var workingClasses []*Class
-
+	var isRemoved bool
 	if len(removedClassString) > 0 {
 		for _, v := range Classes {
+			isRemoved = false
 			for _, s := range removedClassString {
-				if v.name != s {
-					workingClasses = append(workingClasses, v)
+				if v.name == s {
+					isRemoved = true
 				}
 			}
+			if !isRemoved {
+				workingClasses = append(workingClasses, v)
+			}
+
 		}
 	} else {
 		workingClasses = Classes
 	}
+
 	ui.Clear()
 	classMenu.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{3, 3, 0})
 
@@ -209,13 +224,13 @@ Presione Escape para volver a selección de clase.`
 	if cursadasMaster == nil {
 		err = errors.New("No se hallaron combinaciones.")
 		statusBulletin.Error("", err)
+		return err
 	}
 	var week []*menu
 	for i := 0; i < 5; i++ {
 		emptyMenu := NewMenu()
 		week = append(week, &emptyMenu)
 	}
-	askToPollClassList <- false
 
 	keepGoing = true
 	currentCursada := 0
@@ -271,7 +286,8 @@ Presione Escape para volver a selección de clase.`
 	}
 	//statusBulletin.Post("Volvined")
 	//time.Sleep(time.Second*2)
-	return
+
+	return nil
 }
 
 // ░▒▓█ FOUR VALUE CHARACTER

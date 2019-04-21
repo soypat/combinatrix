@@ -35,7 +35,12 @@ func InitBulletin(myBulletin *bulletin) {
 			speaks.SetRect(input.fitting.getRect())
 		}
 		speaks.Text = input.message
-		speaks.TextStyle = ui.NewStyle(theme())
+		if input.color == ui.ColorRed {
+			speaks.TextStyle = ui.NewStyle(input.color)
+		} else {
+			speaks.TextStyle = ui.NewStyle(theme())
+		}
+
 		if input.title != "" {
 			speaks.Title = input.title
 		}
@@ -51,7 +56,7 @@ func (myBulletin *bulletin) Refresh() {
 
 func (myBulletin *bulletin) Post(str string) {
 	myBulletin.message = str
-
+	myBulletin.color = theme()
 	myBulletin.speaker(myBulletin)
 }
 func (myBulletin *bulletin) Error(message string, err error) {
