@@ -37,13 +37,11 @@ func main() {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
 	defer ui.Close()
-
 	defer close(askToPollKeyPress)
 
 	InitBulletin(&statusBulletin)
 	statusBulletin.Post(welcomeText)
 	fileList := NewMenu()
-
 	fileList.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{1, 2, 0})
 	fileListWidth, _ := fileList.GetDims()
 
@@ -67,7 +65,6 @@ func main() {
 	defer close(askToPollFileList)
 RESETCLASSSELECTION:
 	askToPollFileList <- true
-
 	for {
 		if fileList.selection >= 0 && fileList.action == "<Enter>" {
 			fileList.action = ""
@@ -93,7 +90,7 @@ RESETCLASSSELECTION:
 		goto RESETCLASSSELECTION
 	} else if len(Classes) < 1 {
 		err := fmt.Errorf("No se hallaron clases en %s\n\n Verificar formato del archivo", fileDir[2:])
-		statusBulletin.Error("Error al leer archivo:",err)
+		statusBulletin.Error("Error al leer archivo:", err)
 		err = nil
 		fileList.selection = -1
 		goto RESETCLASSSELECTION
@@ -103,10 +100,10 @@ RESETCLASSSELECTION:
 	for {
 		err = mainLoop(&statusBulletin, Classes)
 		if err != nil {
-			statusBulletin.Error("Se hallo un error.",err)
-			time.Sleep(time.Second*3)
+			statusBulletin.Error("Se hallo un error.", err)
+			time.Sleep(time.Second * 3)
+		}
 	}
-}
 
 	return
 }
@@ -134,7 +131,7 @@ Presione Escape para volver a selección de clase.`
 	classMenu = NewMenu()
 
 	for _, v := range ClassNames {
-		classMenu.options = append(classMenu.options,v )
+		classMenu.options = append(classMenu.options, v)
 	}
 	classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
 	classMenu.title = "Clases halladas"
@@ -149,7 +146,7 @@ Presione Escape para volver a selección de clase.`
 
 	for keepGoing { //
 		switch classMenu.action {
-		case  "<Delete>":
+		case "<Delete>":
 			classMenu.action = ""
 			if len(classMenu.options) <= 1 {
 				time.Sleep(time.Millisecond * 500)
@@ -160,7 +157,6 @@ Presione Escape para volver a selección de clase.`
 			classMenu.options = removeS(classMenu.options, removalIndex)
 			InitMenu(&classMenu)
 			amountOfClassesRemoved++
-			//keepGoing = false
 		case "<C-z>", "<C-Z>":
 			classMenu.action = ""
 			if amountOfClassesRemoved > 0 {
@@ -170,9 +166,9 @@ Presione Escape para volver a selección de clase.`
 
 				InitMenu(&classMenu)
 			}
-		case "d": //debug command
+		case "<C-d>": //debug command
 			classMenu.action = ""
-			fmt.Printf("%v\n", classMenu.options)
+
 		case "<Enter>":
 			classMenu.action = ""
 			classMenu.associatedList.SelectedRowStyle = ui.NewStyle(ui.ColorYellow)
@@ -251,7 +247,6 @@ Presione Escape para volver a selección de clase.`
 
 		err = RenderCursada(workingClasses, &(*cursadasMaster)[currentCursada], week)
 		//break  // DEBUG
-
 		if err != nil {
 			statusBulletin.Error("No se pudo mostrar horarios:", err)
 		} else {
@@ -267,7 +262,6 @@ Presione Escape para volver a selección de clase.`
 				unrender = true
 				currentCursada--
 			case "<Escape>":
-				//statusBulletin.Post("Escape not implemented")
 				UnrenderMenuSlice(week)
 				keepGoing = false
 			case "<C-p>", "<C-P>":
@@ -276,9 +270,6 @@ Presione Escape para volver a selección de clase.`
 		}
 
 	}
-	//statusBulletin.Post("Volvined")
-	//time.Sleep(time.Second*2)
-
 	return nil
 }
 
@@ -360,12 +351,6 @@ func PrintVersion() {
 func AskForKeyPress() string {
 	select {
 	case pressed := <-askToPollKeyPress:
-		//if pressed == "w" {
-		//	selectedTheme++
-		//	if selectedTheme > len(colorWheel)-1 {
-		//		selectedTheme = 0
-		//	}
-		//}
 		return pressed
 	default:
 		break
