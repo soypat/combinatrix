@@ -59,6 +59,75 @@ func GetSchedules(classes []*Class, criteria *scheduleCriteria) *[]Cursada {
 	return scheduleListMaster
 }
 
+func searcher(classes []*Class, currentCursada *Cursada, classNumber int, criteria *scheduleCriteria) *[]Cursada {
+	nextClass := classes[classNumber]
+	cursadaListMaster := NewCursadaList()
+	for _, v := range nextClass.comisiones {
+		//cursadaInstance := new(Cursada)
+		cursadaInstance := append(*currentCursada, v)
+
+		if classNumber == len(classes)-1 { //llegue a la ultima clase
+			isValid := verifyCursada(&cursadaInstance, criteria)
+			if isValid { //El schedule es bueno, lo devuelvo como lista no nula
+				cursadaInstanceCopy := make(Cursada,len(cursadaInstance))
+				copy(cursadaInstanceCopy, cursadaInstance)
+				cursadaListMaster = append(cursadaListMaster, cursadaInstanceCopy)
+				continue
+			} else {
+				continue
+			}
+
+		} else { // Si no es la ultima clase, sigo por aca
+			cursadaList := searcher(classes, &cursadaInstance, classNumber+1, criteria) // Awesome recursion baby
+			if len(*cursadaList) == 0 {
+				continue
+			}
+			cursadaListMaster = append(cursadaListMaster, *cursadaList...)
+		}
+	}
+	return &cursadaListMaster
+}
+
+
+func (mySchedule schedule) HourDuration() float32 {
+	return float32(mySchedule.end.hour - mySchedule.start.hour + (mySchedule.end.minute-mySchedule.start.minute)/60)
+
+}
+
+func NewSchedule() schedule {
+	return schedule{}
+}
+
+type timehm struct {
+	hour   int
+	minute int
+}
+
+func NewTime() timehm {
+	return timehm{}
+}
+func NewComision() comision {
+	return comision{}
+}
+
+func NewScheduleCriteria() scheduleCriteria {
+	return scheduleCriteria{}
+}
+
+func NewCursada() Cursada {
+	return Cursada{}
+}
+
+func NewCursadaList() []Cursada {
+	return []Cursada{}
+}
+
+func NewClass() Class {
+	return Class{}
+}
+
+
+
 func GatherClasses(filedir string) ([]*Class, error) {
 	f, err := os.Open(filedir)
 	if err != nil {
@@ -205,70 +274,6 @@ func GatherClasses(filedir string) ([]*Class, error) {
 	return allClasses, err
 }
 
-
-
-func (mySchedule schedule) HourDuration() float32 {
-	return float32(mySchedule.end.hour - mySchedule.start.hour + (mySchedule.end.minute-mySchedule.start.minute)/60)
-
-}
-
-func NewSchedule() schedule {
-	return schedule{}
-}
-
-type timehm struct {
-	hour   int
-	minute int
-}
-
-func NewTime() timehm {
-	return timehm{}
-}
-func NewComision() comision {
-	return comision{}
-}
-
-func NewScheduleCriteria() scheduleCriteria {
-	return scheduleCriteria{}
-}
-
-func NewCursada() Cursada {
-	return Cursada{}
-}
-
-func NewCursadaList() []Cursada {
-	return []Cursada{}
-}
-
-func NewClass() Class {
-	return Class{}
-}
-
-func searcher(classes []*Class, currentCursada *Cursada, classNumber int, criteria *scheduleCriteria) *[]Cursada {
-	nextClass := classes[classNumber]
-	cursadaListMaster := NewCursadaList()
-	for _, v := range nextClass.comisiones {
-		cursadaInstance := append(*currentCursada, v)
-
-		if classNumber == len(classes)-1 { //llegue a la ultima clase
-			isValid := verifyCursada(&cursadaInstance, criteria)
-			if isValid { //El schedule es bueno, lo devuelvo como lista no nula
-				cursadaListMaster = append(cursadaListMaster, cursadaInstance)
-				continue
-			} else {
-				continue
-			}
-
-		} else { // Si no es la ultima clase, sigo por aca
-			cursadaList := searcher(classes, &cursadaInstance, classNumber+1, criteria) // Awesome recursion baby
-			if len(*cursadaList) == 0 {
-				continue
-			}
-			cursadaListMaster = append(cursadaListMaster, *cursadaList...)
-		}
-	}
-	return &cursadaListMaster
-}
 
 func findCollision(schedule1 *schedule, schedule2 *schedule) float32 {
 	if (schedule1.start.hour >= schedule2.start.hour && schedule1.start.hour < schedule2.end.hour) && schedule1.HourDuration() >= 0.5 {

@@ -81,7 +81,7 @@ func fillSchedule(classes []*Class, schedule *menu, dayInt int8, cursada *Cursad
 	for i, com := range *cursada {
 		for _, sched := range com.schedules {
 			if sched.day == dayInt { // TODO verifyCursada debería asegurar que no me den caso end.hour<start.hour
-				for h := sched.start.hour - 8; h <= sched.end.hour-8; h++ {
+				for h := sched.start.hour - 8; h <= sched.end.hour-9; h++ {
 					if h < 0 {
 						return errors.New("Indice negativo. Error en comienzo/fin de algún horario.\nVerificar que sean de 8-22hs.")
 					}

@@ -31,7 +31,7 @@ func main() {
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
 
-	//splash(2) // TODO debug TEMP
+	splash(2) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -79,7 +79,7 @@ RESETCLASSSELECTION:
 		time.Sleep(20 * time.Millisecond)
 		//break //TODO  DEBUG
 	}
-	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/lottamat.dat" // DEBUG
+	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/supmat.dat" // DEBUG
 	//Classes, err := GatherClasses(myFile)
 	//fmt.Sprintf(fileNames[1])// DEBUG COMMENT
 	//fileDir:=fileNames[0] // DEBUG
@@ -123,11 +123,7 @@ func mainLoop(statusBulletin *bulletin, Classes []*Class) error {
 Presione Escape para volver a selección de clase.`
 
 	ui.Clear()
-	//var askToPollClassList chan bool
 
-	//if askToPollClassList != nil {
-	//	close(askToPollClassList)
-	//}
 	var classMenu menu
 
 	var removedClassString []string
@@ -140,23 +136,18 @@ Presione Escape para volver a selección de clase.`
 	for _, v := range ClassNames {
 		classMenu.options = append(classMenu.options,v )
 	}
-
 	classMenu.fitting = CreateFitting([3]int{1, 3, 0}, [3]int{0, 1, 0}, [3]int{2, 3, 0}, [3]int{2, 3, 0})
 	classMenu.title = "Clases halladas"
 	InitMenu(&classMenu)
 	RenderMenu(&classMenu)
-
-	//askToPollClassList <- true
 	go classMenu.Poller(askToPollClassList)
 	defer close(askToPollClassList)
 	askToPollClassList <- true
-
 	removedClassString = []string{}
 	amountOfClassesRemoved = 0
 	keepGoing = true
 
 	for keepGoing { //
-
 		switch classMenu.action {
 		case  "<Delete>":
 			classMenu.action = ""
@@ -189,6 +180,7 @@ Presione Escape para volver a selección de clase.`
 			RenderMenu(&classMenu)
 			keepGoing = false
 		default:
+			//keepGoing = false//TODO DEBUG
 			time.Sleep(40 * time.Millisecond)
 		}
 	}
@@ -220,7 +212,7 @@ Presione Escape para volver a selección de clase.`
 	combinatrix := PossibleCombinations(workingClasses)
 
 	criteria := NewScheduleCriteria()
-	cursadasMaster := GetSchedules(workingClasses, &criteria)
+	cursadasMaster := GetSchedules(workingClasses, &criteria) // ACA ESTA LA ESTRELLA DE TODO: GetSchedules()
 	if cursadasMaster == nil {
 		err = errors.New("No se hallaron combinaciones.")
 		statusBulletin.Error("", err)
