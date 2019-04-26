@@ -142,6 +142,7 @@ Presione Escape para volver a selección de clase.`
 	askToPollClassList <- true
 	removedClassString = []string{}
 	amountOfClassesRemoved = 0
+	criteria := NewScheduleCriteria()
 	keepGoing = true
 
 	for keepGoing { //
@@ -168,7 +169,10 @@ Presione Escape para volver a selección de clase.`
 			}
 		case "<C-d>": //debug command
 			classMenu.action = ""
-
+		case "M","m":
+			classMenu.action = ""
+			askToPollClassList<-false
+			criteriaMenu(&criteria)
 		case "<Enter>":
 			classMenu.action = ""
 			classMenu.associatedList.SelectedRowStyle = ui.NewStyle(ui.ColorYellow)
@@ -200,14 +204,9 @@ Presione Escape para volver a selección de clase.`
 	} else {
 		workingClasses = Classes
 	}
-
 	ui.Clear()
-	classMenu.fitting = CreateFitting([3]int{0, 1, 0}, [3]int{0, 1, 0}, [3]int{1, 3, 0}, [3]int{3, 3, 0})
-
-	// TODO add criteria menu
 	combinatrix := PossibleCombinations(workingClasses)
 
-	criteria := NewScheduleCriteria()
 	cursadasMaster := GetSchedules(workingClasses, &criteria) // ACA ESTA LA ESTRELLA DE TODO: GetSchedules()
 	if cursadasMaster == nil {
 		err = errors.New("No se hallaron combinaciones.")
@@ -271,6 +270,26 @@ Presione Escape para volver a selección de clase.`
 
 	}
 	return nil
+}
+
+
+func criteriaMenu(criteria *scheduleCriteria) {
+	return
+	critMenu := NewMenu()
+	critMenu.fitting = CreateFitting([3]int{0, 3, 0}, [3]int{0, 1, 0}, [3]int{1, 3, -4}, [3]int{2, 3, 0})
+	values := NewMenu()
+
+	critMenu.fitting = CreateFitting([3]int{1, 3, -4}, [3]int{0, 1, 0}, [3]int{1, 3, 1}, [3]int{2, 3, 0})
+	critMenu.title = "Superposición de horarios y días libres"
+	lasOpciones := []string{"Admitir horas de SP","Max SP total","Max nro de SP", "Dias Libres"}
+		//	maxSuperposition          float32
+		//	maxTotalSuperposition     float32
+		//	maxNumberOfSuperpositions int
+		//	freeDays                  [len(Days)]bool
+		//	minFreeDays               int
+	critMenu.options = lasOpciones
+
+	return
 }
 
 // ░▒▓█ FOUR VALUE CHARACTER
