@@ -12,10 +12,10 @@ Enter: Combinatrix. La plataforma del futuro. Lo que Combinar Horarios (Matias D
 La salvación. La esperanza. El rayo de luz en las tinieblas. Se entiende?
 
 ## Objetivo
-Un interfaz gráfico donde el usuario pueda elegir criterios para la combinación de materias. Estos incluyen, pero no están limitados a días libres, superposiciones permitidas. Que devuelva cada cursada posible en la misma interfaz grafica y permir
+Un interfaz gráfico donde el usuario pueda elegir criterios para la combinación de materias. Estos incluyen, pero no están limitados a días libres, superposiciones permitidas. Que devuelva cada cursada posible en la misma interfaz grafica. El usuario va poder navegarlas, eliminar los horarios inconvenientes y guardar a archivo los horarios preferidos. 
 
 ## Donde estamos
-Por ahora no están habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de meter todo. 
+Por ahora no está habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de incluir todas las *features*.
 
 ## FAQ
 ### Que hace un código de python ahí?
