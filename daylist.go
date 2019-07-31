@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	ui "github.com/gizak/termui"
+	ui "github.com/gizak/termui/v3"
 	"time"
 )
 

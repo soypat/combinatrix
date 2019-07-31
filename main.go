@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	ui "github.com/gizak/termui"
-	"github.com/gizak/termui/widgets"
+	ui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,7 +12,8 @@ import (
 	"time"
 )
 
-const versionNumber = "2019.BETA"
+const versionNumber = "2019.BETA.u"
+var weDebugging = false
 
 var isExiting = false
 
@@ -30,8 +31,10 @@ Patricio Whittingslow 2019.`
 func main() {
 	go pollKeyboard()
 	statusBulletin := NewBulletin()
+	if !weDebugging {
+		splash(2) // TODO debug TEMP
+	}
 
-	splash(2) // TODO debug TEMP
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -74,15 +77,24 @@ RESETCLASSSELECTION:
 			break
 		}
 		time.Sleep(20 * time.Millisecond)
-		//break //TODO  DEBUG
+		if weDebugging {
+			break //TODO WEDUBEGING
+		}
 	}
-	//myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/supmat.dat" // DEBUG
-	//Classes, err := GatherClasses(myFile)
-	//fmt.Sprintf(fileNames[1])// DEBUG COMMENT
-	//fileDir:=fileNames[0] // DEBUG
-	//TODO uncomment below
 	fileDir := fileNames[fileList.selection]
 	Classes, err := GatherClasses(fileDir[2:]) // UNCOMMENTO FOR NORMAL USE
+	if weDebugging { // SKIP FILE SELECTION FOR DEBUGGING
+		myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data_smol.dat" // DEBUG
+		Classes, err := GatherClasses(myFile) // DEBUG
+		fmt.Sprintf(fileNames[0])// DEBUG
+		fileDir:=fileNames[0] // DEBUG
+		fmt.Sprintf("%+v",Classes)
+		fmt.Sprintf("%+v",fileDir)
+		fmt.Sprintf("%+v",err)
+	}
+
+
+
 	if err != nil {
 		statusBulletin.Error("Error leyendo archivo:", err)
 		fileList.selection = -1
@@ -101,7 +113,7 @@ RESETCLASSSELECTION:
 		err = mainLoop(&statusBulletin, Classes)
 		if err != nil {
 			statusBulletin.Error("Se hallo un error.", err)
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * 2)
 		}
 	}
 
@@ -117,7 +129,7 @@ func mainLoop(statusBulletin *bulletin, Classes []*Class) error {
 	}
 	instrucciones := `Navegue con las flechas. 
 
-Presione Escape para volver a selección de clase.`
+Presione [Escape] para volver a selección de clase.`
 
 	ui.Clear()
 
@@ -126,7 +138,7 @@ Presione Escape para volver a selección de clase.`
 	var removedClassString []string
 	var amountOfClassesRemoved int
 	var keepGoing bool
-	statusBulletin.Post("Se pueden borrar clases. Apretar ENTER para continuar...")
+	statusBulletin.Post("Se pueden borrar clases y seleccionar parámetros con [M]. Aprete [ENTER] para continuar...")
 	askToPollClassList := make(chan bool)
 	classMenu = NewMenu()
 
@@ -144,12 +156,13 @@ Presione Escape para volver a selección de clase.`
 	amountOfClassesRemoved = 0
 	criteria := NewScheduleCriteria()
 	keepGoing = true
-
+	classMenu.action = "" // Eliminar el bug del delayed respnse
 	for keepGoing { //
+		askToPollClassList <-true
 		switch classMenu.action {
 		case "<Delete>":
 			classMenu.action = ""
-			if len(classMenu.options) <= 1 {
+			if len(classMenu.options) < 1 {
 				time.Sleep(time.Millisecond * 500)
 				continue
 			}
@@ -171,18 +184,23 @@ Presione Escape para volver a selección de clase.`
 			classMenu.action = ""
 		case "M","m":
 			classMenu.action = ""
+			classMenu.selectedColor = ui.ColorYellow
 			askToPollClassList<-false
-			criteriaMenu(&criteria)
+
+			criteriaMenu(&criteria) // CRITERIA MENU!
+
+			askToPollClassList <-true
+			classMenu.selectedColor = ui.ColorWhite
 		case "<Enter>":
 			classMenu.action = ""
-			classMenu.associatedList.SelectedRowStyle = ui.NewStyle(ui.ColorYellow)
+			classMenu.selectedColor = ui.ColorYellow
 			InitMenu(&classMenu)
 			RenderMenu(&classMenu)
 			keepGoing = false
 		default:
-			//keepGoing = false//TODO DEBUG
 			time.Sleep(40 * time.Millisecond)
 		}
+		//classMenu.action="<Enter>"
 	}
 	askToPollClassList <- false
 
@@ -264,7 +282,7 @@ Presione Escape para volver a selección de clase.`
 				UnrenderMenuSlice(week)
 				keepGoing = false
 			case "<C-p>", "<C-P>":
-				statusBulletin.Post("Print!")
+				statusBulletin.Post("Print no implementado!")
 			}
 		}
 
@@ -273,21 +291,98 @@ Presione Escape para volver a selección de clase.`
 }
 
 
-func criteriaMenu(criteria *scheduleCriteria) {
-	return
+func criteriaMenu(criteria *scheduleCriteria)  {
+	askToPollCriteria := make(chan bool)
+
 	critMenu := NewMenu()
 	critMenu.fitting = CreateFitting([3]int{0, 3, 0}, [3]int{0, 1, 0}, [3]int{1, 3, -4}, [3]int{2, 3, 0})
-	values := NewMenu()
+	critValues := NewMenu()
 
-	critMenu.fitting = CreateFitting([3]int{1, 3, -4}, [3]int{0, 1, 0}, [3]int{1, 3, 1}, [3]int{2, 3, 0})
+
+	critValues.fitting = CreateFitting([3]int{1, 3, -4}, [3]int{0, 1, 0}, [3]int{1, 3, 1}, [3]int{2, 3, 0})
 	critMenu.title = "Superposición de horarios y días libres"
-	lasOpciones := []string{"Admitir horas de SP","Max SP total","Max nro de SP", "Dias Libres"}
-		//	maxSuperposition          float32
-		//	maxTotalSuperposition     float32
-		//	maxNumberOfSuperpositions int
-		//	freeDays                  [len(Days)]bool
-		//	minFreeDays               int
+	lasOpciones := []string{"Max horas seguidas de SP", "Max SP total", "Max nro de SP", "Dias Libres"}
+	lasOpcionesSelection := []float32{criteria.maxSuperposition, criteria.maxTotalSuperposition, float32(criteria.maxNumberOfSuperpositions), float32(criteria.minFreeDays)}
+	//	maxSuperposition          float32
+	//	maxTotalSuperposition     float32
+	//	maxNumberOfSuperpositions int
+	//	freeDays                  [len(Days)]bool
+	//	minFreeDays               int
 	critMenu.options = lasOpciones
+	keepGoing := true
+	var keyPressed= true
+	critValues.options = float32SlicetoString(lasOpcionesSelection)
+	InitMenu(&critMenu)
+	RenderMenu(&critMenu)
+	go critMenu.Poller(askToPollCriteria)
+	defer close(askToPollCriteria)
+	askToPollCriteria <- true
+	critValues.color = ui.ColorWhite
+
+	InitMenu(&critValues)
+	RenderMenu(&critValues)
+
+	var selectedIndex int
+	var pressed string
+	for keepGoing {
+		if keyPressed {
+			keyPressed = false
+			critValues.options = float32SlicetoString(lasOpcionesSelection)
+			InitMenu(&critValues)
+			RenderMenu(&critValues)
+			critMenu.action=""
+			askToPollCriteria <- true
+
+			time.Sleep(time.Millisecond * 20)
+		}
+		pressed = critMenu.action
+		switch pressed {
+		case "":
+			time.Sleep(time.Millisecond * 20)
+			continue
+		case "<Down>":
+			keyPressed = true
+			//critMenu.action = pressed
+
+		case "<Up>":
+			keyPressed = true
+			//critMenu.action = pressed
+		case "<Left>":
+			selectedIndex = critMenu.GetSelection()
+			keyPressed = true
+			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex]-1
+
+		case "<Right>":
+			selectedIndex = critMenu.GetSelection()
+			keyPressed = true
+			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex]+1
+		case "d","D":
+			selectedIndex = critMenu.GetSelection()
+		case "<Escape>", "<Enter>":
+			askToPollCriteria<-false
+			keepGoing = false
+			critMenu.selectedColor = ui.ColorYellow
+			criteria.maxSuperposition = lasOpcionesSelection[0]
+			criteria.maxTotalSuperposition = lasOpcionesSelection[1]
+			criteria.maxNumberOfSuperpositions = int(lasOpcionesSelection[2])
+			criteria.minFreeDays = int(lasOpcionesSelection[3])
+			return
+		default:
+			time.Sleep(time.Millisecond * 20)
+			continue
+		}
+
+		// Filtro los numeros
+		if lasOpcionesSelection[selectedIndex]<0 || lasOpcionesSelection[selectedIndex] > 6 {
+			lasOpcionesSelection[selectedIndex]=0
+		}
+		if lasOpcionesSelection[0]>lasOpcionesSelection[1] {
+			lasOpcionesSelection[1]=lasOpcionesSelection[0]
+		} // UPDATE numeros:
+		//critValues.options = float32SlicetoString(lasOpcionesSelection)
+		//InitMenu(&critValues)
+		//RenderMenu(&critValues)
+	}
 
 	return
 }
@@ -323,7 +418,7 @@ func splash(seconds time.Duration) {
 	welcome.TextStyle = ui.NewStyle(ui.ColorWhite)
 	exitMessage := widgets.NewParagraph()
 	exitMessage.Border = false
-	exitMessage.Text = `                   Presione (q) para salir`
+	exitMessage.Text = `                   Presione [q] para salir`
 	exitMessage.SetRect(xPos, (height+yPos+8)/2-1, xPos+61, height+2)
 	PrintVersion()
 	splash := widgets.NewParagraph()
@@ -389,7 +484,7 @@ func pollKeyboard() { // Writes pressed key to channel
 			ui.Close()
 			//close(askToRenderMain)
 
-			panic("User Exited. (q) Press.")
+			panic("User Exited. [q] Press.")
 		case "<C-w>", "<C-W>":
 			selectedTheme++
 			if selectedTheme > len(colorWheel)-1 {
@@ -415,9 +510,7 @@ func fileListCurrentDirectory(permittedStringLength int) ([]string, []string, er
 	if err != nil {
 		return nil, nil, err
 	}
-
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-
 		files = append(files, path)
 		return nil
 	})
@@ -515,4 +608,13 @@ func NCR(n int, r int) int {
 	} else {
 		return -1000
 	}
+}
+
+
+func float32SlicetoString(is []float32) []string {
+	ss := []string{}
+	for v := range is {
+		ss = append(ss, fmt.Sprintf("%.0f", is[v]))
+	}
+	return ss
 }

@@ -28,7 +28,6 @@ type schedule struct {
 	end   timehm
 }
 
-
 type scheduleCriteria struct {
 	maxSuperposition          float32
 	maxTotalSuperposition     float32
@@ -46,7 +45,6 @@ type Class struct {
 }
 
 type Cursada []comision // Cursada is a the group of courses a student attends during the year/semester
-
 
 func GetSchedules(classes []*Class, criteria *scheduleCriteria) *[]Cursada {
 	currentSchedule := NewCursada()
@@ -69,7 +67,7 @@ func searcher(classes []*Class, currentCursada *Cursada, classNumber int, criter
 		if classNumber == len(classes)-1 { //llegue a la ultima clase
 			isValid := verifyCursada(&cursadaInstance, criteria)
 			if isValid { //El schedule es bueno, lo devuelvo como lista no nula
-				cursadaInstanceCopy := make(Cursada,len(cursadaInstance))
+				cursadaInstanceCopy := make(Cursada, len(cursadaInstance))
 				copy(cursadaInstanceCopy, cursadaInstance)
 				cursadaListMaster = append(cursadaListMaster, cursadaInstanceCopy)
 				continue
@@ -87,7 +85,6 @@ func searcher(classes []*Class, currentCursada *Cursada, classNumber int, criter
 	}
 	return &cursadaListMaster
 }
-
 
 func (mySchedule schedule) HourDuration() float32 {
 	return float32(mySchedule.end.hour - mySchedule.start.hour + (mySchedule.end.minute-mySchedule.start.minute)/60)
@@ -126,8 +123,6 @@ func NewClass() Class {
 	return Class{}
 }
 
-
-
 func GatherClasses(filedir string) ([]*Class, error) {
 	f, err := os.Open(filedir)
 	if err != nil {
@@ -153,7 +148,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 		yetToAppendToClasses  bool
 	)
 	badChar := '�'
-	for scanner.Scan() {  // SCANNER SUPERIOR
+	for scanner.Scan() { // SCANNER SUPERIOR
 		line++
 		textLine := scanner.Text()
 
@@ -256,12 +251,11 @@ func GatherClasses(filedir string) ([]*Class, error) {
 					currentComision.teachers = append(currentComision.teachers, textLine)
 				}
 			}
-			if len(currentClass.comisiones) > 0 && yetToAppendToClasses  {
+			if len(currentClass.comisiones) > 0 && yetToAppendToClasses {
 				allClasses = append(allClasses, &currentClass)
 
 			}
 		}
-
 
 	}
 	if debug {
@@ -273,7 +267,6 @@ func GatherClasses(filedir string) ([]*Class, error) {
 	}
 	return allClasses, err
 }
-
 
 func findCollision(schedule1 *schedule, schedule2 *schedule) float32 {
 	if (schedule1.start.hour >= schedule2.start.hour && schedule1.start.hour < schedule2.end.hour) && schedule1.HourDuration() >= 0.5 {
@@ -295,6 +288,7 @@ func findCollision(schedule1 *schedule, schedule2 *schedule) float32 {
 
 func verifyCursada(currentCursada *Cursada, criteria *scheduleCriteria) bool {
 	// TODO hard part coming ahead. Actual verification
+
 	numberOfMaterias := len(*currentCursada)
 	superpositionCounter := 0
 	totalSuperpositions := float32(0)
@@ -331,12 +325,23 @@ func verifyCursada(currentCursada *Cursada, criteria *scheduleCriteria) bool {
 
 		}
 	}
+	var totalBusyDays int
 	// Verificación final de dias ocupados
 	for i, b := range busyDays {
-		if criteria.freeDays[i] && b {
-			return false
+		if b {
+			totalBusyDays++ // Contador de los dias ocupados
+			if criteria.freeDays[i] {
+				return false
+			}
 		}
+		//if criteria.freeDays[i] && b { // OLD METHOD
+		//	return false
+		//}
 	}
+	if totalBusyDays > 5 - criteria.minFreeDays { // Verificacion de minima cantidad de dias libres
+		return false
+	}
+
 	return true
 }
 

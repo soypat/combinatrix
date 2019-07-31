@@ -1,7 +1,7 @@
 package main
 
 import (
-	ui "github.com/gizak/termui"
+	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/widgets"
 	"time"
 )
@@ -88,11 +88,11 @@ func (theMenu *menu) Poller(askedToPoll <-chan bool) {
 	}
 }
 
-type fitting struct {
-	widthStart  [3]int
-	heightStart [3]int
-	widthEnd    [3]int
-	heightEnd   [3]int
+type fitting struct { // This stuff aint as stuffy as it looks
+	widthStart  [3]int // 3 unit vector used to position each of the 4 window borders
+	heightStart [3]int // first two units are used to indicate fraction of window. Last one is a constant character postion
+	widthEnd    [3]int // [1, 2, 3] means the border is positioned 3 character lengths after halfway mark of terminal
+	heightEnd   [3]int // [0, 5, 6] means the border is positioned 6 characters where leftwise terminal border begins. 5 is meaningless
 }
 
 func CreateFitting(wS [3]int, hS [3]int, wE [3]int, hE [3]int) *fitting {
