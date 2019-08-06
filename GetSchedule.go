@@ -136,7 +136,7 @@ func GatherClasses(filedir string) ([]*Class, error) {
 	reClassNumber := regexp.MustCompile(`[0-9]{2}\.[0-9]{2}`)
 	reSchedule := regexp.MustCompile(`^[\s]{0,99}[A-Za-zéá�]{5,9}[\s][0-9:0-9]{5}[\s-]{1,5}[0-9:0-9]{5}`)
 	reComisionLabel := regexp.MustCompile(`(?:^[\s]{0,99})[A-Z]{1,8}(?:[\s]{0,99}$)`)
-	reEndComision := regexp.MustCompile(`^[\s]{0,99}[0-9]{1,4}[\/\s]{1,3}[0-9]{1,4}[\s]{0,99}$`)
+	reEndComision := regexp.MustCompile(`^[\s]{0,99}[0-9]{1,5}[\/\s]{1,3}[\w]{1,11}[\s]{0,99}$`)
 	reEAccent := regexp.MustCompile(`[�]{1}`)
 
 	var (
