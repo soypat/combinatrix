@@ -15,7 +15,7 @@ La salvación. La esperanza. El rayo de luz en las tinieblas. Se entiende?
 Un interfaz gráfico donde el usuario pueda elegir criterios para la combinación de materias. Estos incluyen, pero no están limitados a días libres, superposiciones permitidas. Que devuelva cada cursada posible en la misma interfaz grafica. El usuario va poder navegarlas, eliminar los horarios inconvenientes y guardar a archivo los horarios preferidos. 
 
 ## Donde estamos
-~Por ahora no está habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de incluir todas los features~ Funciona con superposiciones! Pueden encontrar un ejecutable en whittileaks.com bajo la pestaña **Combinatrix**.
+~Por ahora no está habilitada la combinación por día libre/superposición. Esto es para testear el programa y ver que funcione bien antes de incluir todas los features~ Funciona con superposiciones! Pueden encontrar un ejecutable en [whittileaks.com](http://www.whittileaks.com) bajo la pestaña **Combinatrix**.
 
 ## FAQ
 ### Que hace un código de python ahí?
