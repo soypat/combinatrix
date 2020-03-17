@@ -2,7 +2,7 @@ package main
 
 import (
 	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/widgets"
+	"github.com/gizak/termui/v3/widgets"
 	"time"
 )
 

@@ -1,6 +1,8 @@
 # Binaries for programs and plugins
 *.exe
 *.exe~
+*_linux
+*_macOS
 *.dll
 *.so
 *.dylib
