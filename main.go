@@ -3,16 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
-	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	ui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
 )
 
-const versionNumber = "2019.BETA.u"
+const versionNumber = "2021.v1.1.0"
+
 var weDebugging = false
 
 var isExiting = false
@@ -34,7 +36,6 @@ func main() {
 	if !weDebugging {
 		splash(2) // TODO debug TEMP
 	}
-
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -83,17 +84,15 @@ RESETCLASSSELECTION:
 	}
 	fileDir := fileNames[fileList.selection]
 	Classes, err := GatherClasses(fileDir[2:]) // UNCOMMENTO FOR NORMAL USE
-	if weDebugging { // SKIP FILE SELECTION FOR DEBUGGING
+	if weDebugging {                           // SKIP FILE SELECTION FOR DEBUGGING
 		myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data_smol.dat" // DEBUG
-		Classes, err := GatherClasses(myFile) // DEBUG
-		fmt.Sprintf(fileNames[0])// DEBUG
-		fileDir:=fileNames[0] // DEBUG
-		fmt.Sprintf("%+v",Classes)
-		fmt.Sprintf("%+v",fileDir)
-		fmt.Sprintf("%+v",err)
+		Classes, err := GatherClasses(myFile)                                           // DEBUG
+		fmt.Sprintf(fileNames[0])                                                       // DEBUG
+		fileDir := fileNames[0]                                                         // DEBUG
+		fmt.Sprintf("%+v", Classes)
+		fmt.Sprintf("%+v", fileDir)
+		fmt.Sprintf("%+v", err)
 	}
-
-
 
 	if err != nil {
 		statusBulletin.Error("Error leyendo archivo:", err)
@@ -157,8 +156,8 @@ Presione [Escape] para volver a selección de clase.`
 	criteria := NewScheduleCriteria()
 	keepGoing = true
 	classMenu.action = "" // Eliminar el bug del delayed respnse
-	for keepGoing { //
-		askToPollClassList <-true
+	for keepGoing {       //
+		askToPollClassList <- true
 		switch classMenu.action {
 		case "<Delete>":
 			classMenu.action = ""
@@ -182,14 +181,14 @@ Presione [Escape] para volver a selección de clase.`
 			}
 		case "<C-d>": //debug command
 			classMenu.action = ""
-		case "M","m":
+		case "M", "m":
 			classMenu.action = ""
 			classMenu.selectedColor = ui.ColorYellow
-			askToPollClassList<-false
+			askToPollClassList <- false
 
 			criteriaMenu(&criteria) // CRITERIA MENU!
 
-			askToPollClassList <-true
+			askToPollClassList <- true
 			classMenu.selectedColor = ui.ColorWhite
 		case "<Enter>":
 			classMenu.action = ""
@@ -261,17 +260,24 @@ Presione [Escape] para volver a selección de clase.`
 				PrintVersion()
 			}
 		}
-
+		pressed := AskForKeyPress()
+		if pressed == "<Escape>" {
+			UnrenderMenuSlice(week)
+			keepGoing = false
+		}
 		err = RenderCursada(workingClasses, &(*cursadasMaster)[currentCursada], week)
+
 		//break  // DEBUG
 		if err != nil {
 			statusBulletin.Error("No se pudo mostrar horarios:", err)
+			time.Sleep(time.Millisecond * 200)
 		} else {
+		NoPress:
 			pressed := AskForKeyPress()
 			switch pressed {
-			case "":
+			default:
 				time.Sleep(time.Millisecond * 20)
-				continue
+				goto NoPress
 			case "<Right>":
 				unrender = true
 				currentCursada++
@@ -290,14 +296,12 @@ Presione [Escape] para volver a selección de clase.`
 	return nil
 }
 
-
-func criteriaMenu(criteria *scheduleCriteria)  {
+func criteriaMenu(criteria *scheduleCriteria) {
 	askToPollCriteria := make(chan bool)
 
 	critMenu := NewMenu()
 	critMenu.fitting = CreateFitting([3]int{0, 3, 0}, [3]int{0, 1, 0}, [3]int{1, 3, -4}, [3]int{2, 3, 0})
 	critValues := NewMenu()
-
 
 	critValues.fitting = CreateFitting([3]int{1, 3, -4}, [3]int{0, 1, 0}, [3]int{1, 3, 1}, [3]int{2, 3, 0})
 	critMenu.title = "Superposición de horarios y días libres"
@@ -310,7 +314,7 @@ func criteriaMenu(criteria *scheduleCriteria)  {
 	//	minFreeDays               int
 	critMenu.options = lasOpciones
 	keepGoing := true
-	var keyPressed= true
+	var keyPressed = true
 	critValues.options = float32SlicetoString(lasOpcionesSelection)
 	InitMenu(&critMenu)
 	RenderMenu(&critMenu)
@@ -330,7 +334,7 @@ func criteriaMenu(criteria *scheduleCriteria)  {
 			critValues.options = float32SlicetoString(lasOpcionesSelection)
 			InitMenu(&critValues)
 			RenderMenu(&critValues)
-			critMenu.action=""
+			critMenu.action = ""
 			askToPollCriteria <- true
 
 			time.Sleep(time.Millisecond * 20)
@@ -350,16 +354,16 @@ func criteriaMenu(criteria *scheduleCriteria)  {
 		case "<Left>":
 			selectedIndex = critMenu.GetSelection()
 			keyPressed = true
-			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex]-1
+			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex] - 1
 
 		case "<Right>":
 			selectedIndex = critMenu.GetSelection()
 			keyPressed = true
-			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex]+1
-		case "d","D":
+			lasOpcionesSelection[selectedIndex] = lasOpcionesSelection[selectedIndex] + 1
+		case "d", "D":
 			selectedIndex = critMenu.GetSelection()
 		case "<Escape>", "<Enter>":
-			askToPollCriteria<-false
+			askToPollCriteria <- false
 			keepGoing = false
 			critMenu.selectedColor = ui.ColorYellow
 			criteria.maxSuperposition = lasOpcionesSelection[0]
@@ -373,11 +377,11 @@ func criteriaMenu(criteria *scheduleCriteria)  {
 		}
 
 		// Filtro los numeros
-		if lasOpcionesSelection[selectedIndex]<0 || lasOpcionesSelection[selectedIndex] > 6 {
-			lasOpcionesSelection[selectedIndex]=0
+		if lasOpcionesSelection[selectedIndex] < 0 || lasOpcionesSelection[selectedIndex] > 6 {
+			lasOpcionesSelection[selectedIndex] = 0
 		}
-		if lasOpcionesSelection[0]>lasOpcionesSelection[1] {
-			lasOpcionesSelection[1]=lasOpcionesSelection[0]
+		if lasOpcionesSelection[0] > lasOpcionesSelection[1] {
+			lasOpcionesSelection[1] = lasOpcionesSelection[0]
 		} // UPDATE numeros:
 		//critValues.options = float32SlicetoString(lasOpcionesSelection)
 		//InitMenu(&critValues)
@@ -609,7 +613,6 @@ func NCR(n int, r int) int {
 		return -1000
 	}
 }
-
 
 func float32SlicetoString(is []float32) []string {
 	ss := []string{}
