@@ -1,4 +1,4 @@
-module combinatrix
+module github.com/soypat/combinatrix
 
 go 1.16
 

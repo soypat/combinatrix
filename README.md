@@ -20,3 +20,10 @@ Un interfaz gráfico donde el usuario pueda elegir criterios para la combinació
 ## FAQ
 ### Que hace un código de python ahí?
 Ese fue el primer código que escribí... Febrero de 2017. Retome el proyecto con Go en Marzo 2019.
+
+#### Install with Go tool
+- Requires Go 1.16 or later.
+
+```sh
+$ go install github.com/soypat/combinatrix@latest
+```

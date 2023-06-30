@@ -87,11 +87,11 @@ RESETCLASSSELECTION:
 	if weDebugging {                           // SKIP FILE SELECTION FOR DEBUGGING
 		myFile := "C:/work/gopath/src/github.com/soypat/Combinatrix/test/data_smol.dat" // DEBUG
 		Classes, err := GatherClasses(myFile)                                           // DEBUG
-		fmt.Sprintf(fileNames[0])                                                       // DEBUG
+		fmt.Println(fileNames[0])                                                       // DEBUG
 		fileDir := fileNames[0]                                                         // DEBUG
-		fmt.Sprintf("%+v", Classes)
-		fmt.Sprintf("%+v", fileDir)
-		fmt.Sprintf("%+v", err)
+		fmt.Printf("%+v", Classes)
+		fmt.Printf("%+v", fileDir)
+		fmt.Printf("%+v", err)
 	}
 
 	if err != nil {
@@ -115,8 +115,6 @@ RESETCLASSSELECTION:
 			time.Sleep(time.Second * 2)
 		}
 	}
-
-	return
 }
 
 func mainLoop(statusBulletin *bulletin, Classes []*Class) error {
